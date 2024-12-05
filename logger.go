@@ -19,7 +19,7 @@ type LoggerOptions struct {
 	name       string
 	attributes []log.KeyValue
 	url        string
-	apiKey     string
+	token      string
 }
 
 // NewLoggerOptions creates a new LoggerOptions
@@ -29,7 +29,7 @@ func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
 		name:       "",
 		attributes: []log.KeyValue{},
 		url:        "",
-		apiKey:     "",
+		token:      "",
 	}
 
 	for _, opt := range opts {
@@ -63,10 +63,10 @@ func WithURL(url string) LoggerOption {
 	}
 }
 
-// WithAPIKey adds the API key to the logger
-func WithAPIKey(apiKey string) LoggerOption {
+// WithToken adds the token to the logger
+func WithToken(token string) LoggerOption {
 	return func(opts *LoggerOptions) {
-		opts.apiKey = apiKey
+		opts.token = token
 	}
 }
 
@@ -190,12 +190,16 @@ func getSeverity(level LogLevel) log.Severity {
 // newOtelLogger creates a new OpenTelemetry logger with OTLP export
 func newOtelLogger(
 	url string,
+	token string,
 	name string,
 ) (log.Logger, error) {
 	exporter, err := otlploggrpc.New(
 		context.Background(),
 		otlploggrpc.WithEndpoint(url),
 		otlploggrpc.WithInsecure(),
+		otlploggrpc.WithHeaders(map[string]string{
+			"x-vigilant-token": token,
+		}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
@@ -239,5 +243,10 @@ func getOtelLogger(
 		url = opts.url
 	}
 
-	return newOtelLogger(url, name)
+	var token string = "tk_1234567890"
+	if opts.token != "" {
+		token = opts.token
+	}
+
+	return newOtelLogger(url, token, name)
 }
