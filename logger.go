@@ -3,6 +3,8 @@ package vigilant
 import (
 	"context"
 	"fmt"
+	"runtime"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -110,42 +112,50 @@ func NewLogger(
 
 // Debug logs a message at DEBUG level
 func (l *Logger) Debug(ctx context.Context, message string, attrs ...log.KeyValue) {
-	l.log(ctx, DebugLevel, message, nil, attrs...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, DebugLevel, message, nil, append(l.attributes, callerAttrs...)...)
 }
 
 // Debugf logs a formatted message at DEBUG level
 func (l *Logger) Debugf(ctx context.Context, format string, args ...interface{}) {
-	l.log(ctx, DebugLevel, fmt.Sprintf(format, args...), nil, l.attributes...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, DebugLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
 }
 
 // Warn logs a message at WARN level
 func (l *Logger) Warn(ctx context.Context, message string, attrs ...log.KeyValue) {
-	l.log(ctx, WarnLevel, message, nil, attrs...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, WarnLevel, message, nil, append(l.attributes, callerAttrs...)...)
 }
 
 // Warnf logs a formatted message at WARN level
 func (l *Logger) Warnf(ctx context.Context, format string, args ...interface{}) {
-	l.log(ctx, WarnLevel, fmt.Sprintf(format, args...), nil, l.attributes...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, WarnLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
 }
 
 // Info logs a message at INFO level
 func (l *Logger) Info(ctx context.Context, message string, attrs ...log.KeyValue) {
-	l.log(ctx, InfoLevel, message, nil, attrs...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, InfoLevel, message, nil, append(l.attributes, callerAttrs...)...)
 }
 
 // Infof logs a formatted message at INFO level
 func (l *Logger) Infof(ctx context.Context, format string, args ...interface{}) {
-	l.log(ctx, InfoLevel, fmt.Sprintf(format, args...), nil, l.attributes...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, InfoLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
 }
 
 // Error logs a message at ERROR level
 func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...log.KeyValue) {
-	l.log(ctx, ErrorLevel, message, err, attrs...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, ErrorLevel, message, err, append(l.attributes, callerAttrs...)...)
 }
 
 // Errorf logs a formatted message at ERROR level
 func (l *Logger) Errorf(ctx context.Context, format string, args ...interface{}) {
-	l.log(ctx, ErrorLevel, fmt.Sprintf(format, args...), nil, l.attributes...)
+	callerAttrs := getCallerAttrs()
+	l.log(ctx, ErrorLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
 }
 
 // log handles the actual logging
@@ -249,4 +259,34 @@ func getOtelLogger(
 	}
 
 	return newOtelLogger(url, token, name)
+}
+
+// getCallerAttrs returns the caller attributes
+func getCallerAttrs() []log.KeyValue {
+	file, line, fn := getCallerInfo()
+	return []log.KeyValue{
+		log.String("caller.file", file),
+		log.Int("caller.line", line),
+		log.String("caller.function", fn),
+	}
+}
+
+// getCallerInfo returns the caller information
+func getCallerInfo() (string, int, string) {
+	pc, file, line, ok := runtime.Caller(2)
+	if !ok {
+		return "", 0, ""
+	}
+
+	fn := runtime.FuncForPC(pc)
+	if fn == nil {
+		return file, line, ""
+	}
+
+	name := fn.Name()
+	if idx := strings.LastIndex(name, "."); idx >= 0 {
+		name = name[idx+1:]
+	}
+
+	return file, line, name
 }
