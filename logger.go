@@ -23,6 +23,7 @@ type LoggerOptions struct {
 	url         string
 	token       string
 	passthrough bool
+	insecure    bool
 }
 
 // NewLoggerOptions creates a new LoggerOptions
@@ -34,6 +35,7 @@ func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
 		url:         "",
 		token:       "",
 		passthrough: false,
+		insecure:    false,
 	}
 
 	for _, opt := range opts {
@@ -85,6 +87,13 @@ func WithOTELLogger(otelLogger log.Logger) LoggerOption {
 func WithPassthrough() LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.passthrough = true
+	}
+}
+
+// WithInsecure disables TLS verification
+func WithInsecure() LoggerOption {
+	return func(opts *LoggerOptions) {
+		opts.insecure = true
 	}
 }
 
@@ -237,14 +246,21 @@ func newOtelLogger(
 	url string,
 	token string,
 	name string,
+	insecure bool,
 ) (log.Logger, error) {
-	exporter, err := otlploggrpc.New(
-		context.Background(),
+	opts := []otlploggrpc.Option{
 		otlploggrpc.WithEndpoint(url),
-		otlploggrpc.WithInsecure(),
 		otlploggrpc.WithHeaders(map[string]string{
 			"x-vigilant-token": token,
 		}),
+	}
+	if insecure {
+		opts = append(opts, otlploggrpc.WithInsecure())
+	}
+
+	exporter, err := otlploggrpc.New(
+		context.Background(),
+		opts...,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
@@ -293,7 +309,12 @@ func getOtelLogger(
 		token = opts.token
 	}
 
-	return newOtelLogger(url, token, name)
+	var insecure bool = false
+	if opts.insecure {
+		insecure = opts.insecure
+	}
+
+	return newOtelLogger(url, token, name, insecure)
 }
 
 // getCallerAttrs returns the caller attributes
