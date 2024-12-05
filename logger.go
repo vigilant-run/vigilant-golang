@@ -252,7 +252,6 @@ func newOtelLogger(
 ) (log.Logger, error) {
 	opts := []otlploggrpc.Option{
 		otlploggrpc.WithEndpoint(url),
-		otlploggrpc.WithInsecure(),
 		otlploggrpc.WithHeaders(map[string]string{
 			"x-vigilant-token": token,
 		}),
@@ -262,7 +261,6 @@ func newOtelLogger(
 	} else {
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: true,
-			NextProtos:         []string{"h2"},
 		}
 		creds := credentials.NewTLS(tlsConfig)
 		opts = append(opts, otlploggrpc.WithTLSCredentials(creds))
