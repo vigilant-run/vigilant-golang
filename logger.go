@@ -17,21 +17,23 @@ import (
 
 // LoggerOptions are the options for the Logger
 type LoggerOptions struct {
-	otelLogger log.Logger
-	name       string
-	attributes []log.KeyValue
-	url        string
-	token      string
+	otelLogger  log.Logger
+	name        string
+	attributes  []log.KeyValue
+	url         string
+	token       string
+	passthrough bool
 }
 
 // NewLoggerOptions creates a new LoggerOptions
 func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
 	options := &LoggerOptions{
-		otelLogger: nil,
-		name:       "",
-		attributes: []log.KeyValue{},
-		url:        "",
-		token:      "",
+		otelLogger:  nil,
+		name:        "",
+		attributes:  []log.KeyValue{},
+		url:         "",
+		token:       "",
+		passthrough: false,
 	}
 
 	for _, opt := range opts {
@@ -79,10 +81,18 @@ func WithOTELLogger(otelLogger log.Logger) LoggerOption {
 	}
 }
 
+// WithPassthrough also logs fmt.Println
+func WithPassthrough() LoggerOption {
+	return func(opts *LoggerOptions) {
+		opts.passthrough = true
+	}
+}
+
 // Logger wraps the OpenTelemetry logger
 type Logger struct {
-	otelLogger log.Logger
-	attributes []log.KeyValue
+	otelLogger  log.Logger
+	attributes  []log.KeyValue
+	passthrough bool
 }
 
 // LogLevel represents the severity of the log message
@@ -105,8 +115,9 @@ func NewLogger(
 	}
 
 	return &Logger{
-		otelLogger: otelLogger,
-		attributes: opts.attributes,
+		otelLogger:  otelLogger,
+		attributes:  opts.attributes,
+		passthrough: opts.passthrough,
 	}
 }
 
@@ -114,48 +125,72 @@ func NewLogger(
 func (l *Logger) Debug(ctx context.Context, message string, attrs ...log.KeyValue) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, DebugLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(message)
+	}
 }
 
 // Debugf logs a formatted message at DEBUG level
 func (l *Logger) Debugf(ctx context.Context, format string, args ...interface{}) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, DebugLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(fmt.Sprintf(format, args...))
+	}
 }
 
 // Warn logs a message at WARN level
 func (l *Logger) Warn(ctx context.Context, message string, attrs ...log.KeyValue) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, WarnLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(message)
+	}
 }
 
 // Warnf logs a formatted message at WARN level
 func (l *Logger) Warnf(ctx context.Context, format string, args ...interface{}) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, WarnLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(fmt.Sprintf(format, args...))
+	}
 }
 
 // Info logs a message at INFO level
 func (l *Logger) Info(ctx context.Context, message string, attrs ...log.KeyValue) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, InfoLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(message)
+	}
 }
 
 // Infof logs a formatted message at INFO level
 func (l *Logger) Infof(ctx context.Context, format string, args ...interface{}) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, InfoLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(fmt.Sprintf(format, args...))
+	}
 }
 
 // Error logs a message at ERROR level
 func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...log.KeyValue) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, ErrorLevel, message, err, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(message)
+	}
 }
 
 // Errorf logs a formatted message at ERROR level
 func (l *Logger) Errorf(ctx context.Context, format string, args ...interface{}) {
 	callerAttrs := getCallerAttrs()
 	l.log(ctx, ErrorLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
+	if l.passthrough {
+		fmt.Println(fmt.Sprintf(format, args...))
+	}
 }
 
 // log handles the actual logging
