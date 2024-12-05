@@ -205,13 +205,13 @@ func newOtelLogger(
 		attrs = append(attrs, semconv.ServiceName(name))
 	}
 
-	res := resource.NewWithAttributes(
+	resource := resource.NewWithAttributes(
 		semconv.SchemaURL,
 		attrs...,
 	)
 
 	provider := sdklog.NewLoggerProvider(
-		sdklog.WithResource(res),
+		sdklog.WithResource(resource),
 		sdklog.WithProcessor(
 			sdklog.NewBatchProcessor(exporter),
 		),
