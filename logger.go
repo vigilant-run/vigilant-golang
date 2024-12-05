@@ -2,6 +2,7 @@ package vigilant
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"runtime"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	"google.golang.org/grpc/credentials"
 )
 
 // LoggerOptions are the options for the Logger
@@ -23,6 +25,7 @@ type LoggerOptions struct {
 	url         string
 	token       string
 	passthrough bool
+	insecure    bool
 }
 
 // NewLoggerOptions creates a new LoggerOptions
@@ -34,6 +37,7 @@ func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
 		url:         "",
 		token:       "",
 		passthrough: false,
+		insecure:    false,
 	}
 
 	for _, opt := range opts {
@@ -237,6 +241,7 @@ func newOtelLogger(
 	url string,
 	token string,
 	name string,
+	insecure bool,
 ) (log.Logger, error) {
 	opts := []otlploggrpc.Option{
 		otlploggrpc.WithEndpoint(url),
@@ -244,6 +249,16 @@ func newOtelLogger(
 		otlploggrpc.WithHeaders(map[string]string{
 			"x-vigilant-token": token,
 		}),
+	}
+	if insecure {
+		opts = append(opts, otlploggrpc.WithInsecure())
+	} else {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+			NextProtos:         []string{"h2"},
+		}
+		creds := credentials.NewTLS(tlsConfig)
+		opts = append(opts, otlploggrpc.WithTLSCredentials(creds))
 	}
 
 	exporter, err := otlploggrpc.New(
@@ -297,7 +312,12 @@ func getOtelLogger(
 		token = opts.token
 	}
 
-	return newOtelLogger(url, token, name)
+	var insecure bool = false
+	if opts.insecure {
+		insecure = opts.insecure
+	}
+
+	return newOtelLogger(url, token, name, insecure)
 }
 
 // getCallerAttrs returns the caller attributes
