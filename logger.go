@@ -92,6 +92,13 @@ func WithPassthrough() LoggerOption {
 	}
 }
 
+// WithInsecure disables TLS verification
+func WithInsecure() LoggerOption {
+	return func(opts *LoggerOptions) {
+		opts.insecure = true
+	}
+}
+
 // Logger wraps the OpenTelemetry logger
 type Logger struct {
 	otelLogger  log.Logger
