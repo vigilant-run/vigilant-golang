@@ -195,6 +195,7 @@ func newOtelLogger(
 	exporter, err := otlploggrpc.New(
 		context.Background(),
 		otlploggrpc.WithEndpoint(url),
+		otlploggrpc.WithInsecure(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create exporter: %w", err)
