@@ -273,7 +273,7 @@ func getCallerAttrs() []log.KeyValue {
 
 // getCallerInfo returns the caller information
 func getCallerInfo() (string, int, string) {
-	pc, file, line, ok := runtime.Caller(2)
+	pc, file, line, ok := runtime.Caller(3)
 	if !ok {
 		return "", 0, ""
 	}
