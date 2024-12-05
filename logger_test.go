@@ -25,7 +25,10 @@ func (m *mockLogger) Enabled(_ context.Context, _ log.EnabledParameters) bool {
 func TestLogger(t *testing.T) {
 	t.Run("Info logging", func(t *testing.T) {
 		mock := &mockLogger{}
-		logger := NewLogger(mock, WithAttributes(log.String("service", "test")))
+		opts := &LoggerOptions{
+			otelLogger: mock,
+		}
+		logger := NewLogger(opts)
 
 		logger.Info(context.Background(), "test message", log.Int("count", 1))
 
@@ -37,7 +40,10 @@ func TestLogger(t *testing.T) {
 
 	t.Run("Error logging", func(t *testing.T) {
 		mock := &mockLogger{}
-		logger := NewLogger(mock)
+		opts := &LoggerOptions{
+			otelLogger: mock,
+		}
+		logger := NewLogger(opts)
 		testErr := errors.New("test error")
 
 		logger.Error(context.Background(), "error message", testErr)
@@ -56,7 +62,11 @@ func TestLogger(t *testing.T) {
 
 	t.Run("Default attributes", func(t *testing.T) {
 		mock := &mockLogger{}
-		logger := NewLogger(mock, WithAttributes(log.String("default", "value")))
+		opts := &LoggerOptions{
+			otelLogger: mock,
+			attributes: []log.KeyValue{log.String("default", "value")},
+		}
+		logger := NewLogger(opts)
 
 		logger.Info(context.Background(), "test")
 
