@@ -2,7 +2,6 @@ package vigilant
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"runtime"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
-	"google.golang.org/grpc/credentials"
 )
 
 // LoggerOptions are the options for the Logger
@@ -258,12 +256,6 @@ func newOtelLogger(
 	}
 	if insecure {
 		opts = append(opts, otlploggrpc.WithInsecure())
-	} else {
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
-		}
-		creds := credentials.NewTLS(tlsConfig)
-		opts = append(opts, otlploggrpc.WithTLSCredentials(creds))
 	}
 
 	exporter, err := otlploggrpc.New(
