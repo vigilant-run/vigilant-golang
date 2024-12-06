@@ -299,7 +299,7 @@ func getOtelLogger(
 		name = opts.name
 	}
 
-	var url string = "https://log.vigilant.run:4317"
+	var url string = "otel.vigilant.run:4317"
 	if opts.url != "" {
 		url = opts.url
 	}
