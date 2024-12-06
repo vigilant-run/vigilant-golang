@@ -18,7 +18,7 @@ import (
 
 func main() {
     loggerOptions := vigilant.NewLoggerOptions(
-        vigilant.WithURL("https://log.vigilant.run:4317"),
+        vigilant.WithURL("otel.vigilant.run:4317"),
         vigilant.WithToken("tk_1234567890"),
         vigilant.WithName("sample-app"),
         vigilant.WithPassthrough(),
