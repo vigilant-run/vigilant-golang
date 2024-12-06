@@ -11,14 +11,17 @@ go get github.com/vigilant-go/vigilant-golang
 ## Usage
 
 ```go
+package main
+
 import (
     "context"
+
     "github.com/vigilant-run/vigilant-golang"
 )
 
 func main() {
     loggerOptions := vigilant.NewLoggerOptions(
-        vigilant.WithURL("otel.vigilant.run:4317"),
+        vigilant.WithURL("log.vigilant.run:4317"),
         vigilant.WithToken("tk_1234567890"),
         vigilant.WithName("sample-app"),
         vigilant.WithPassthrough(),
