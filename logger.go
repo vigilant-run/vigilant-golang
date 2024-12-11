@@ -23,6 +23,7 @@ type LoggerOptions struct {
 	url         string
 	token       string
 	passthrough bool
+	noop        bool
 	insecure    bool
 }
 
@@ -90,6 +91,13 @@ func WithPassthrough() LoggerOption {
 	}
 }
 
+// WithNoop disables the logger
+func WithNoop() LoggerOption {
+	return func(opts *LoggerOptions) {
+		opts.noop = true
+	}
+}
+
 // WithInsecure disables TLS verification
 func WithInsecure() LoggerOption {
 	return func(opts *LoggerOptions) {
@@ -102,6 +110,7 @@ type Logger struct {
 	otelLogger  log.Logger
 	attributes  []log.KeyValue
 	passthrough bool
+	noop        bool
 }
 
 // LogLevel represents the severity of the log message
@@ -132,73 +141,45 @@ func NewLogger(
 
 // Debug logs a message at DEBUG level
 func (l *Logger) Debug(ctx context.Context, message string, attrs ...log.KeyValue) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, DebugLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	if !l.noop {
+		callerAttrs := getCallerAttrs()
+		l.log(ctx, DebugLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	}
 	if l.passthrough {
 		fmt.Println(message)
-	}
-}
-
-// Debugf logs a formatted message at DEBUG level
-func (l *Logger) Debugf(ctx context.Context, format string, args ...interface{}) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, DebugLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
-	if l.passthrough {
-		fmt.Println(fmt.Sprintf(format, args...))
 	}
 }
 
 // Warn logs a message at WARN level
 func (l *Logger) Warn(ctx context.Context, message string, attrs ...log.KeyValue) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, WarnLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	if !l.noop {
+		callerAttrs := getCallerAttrs()
+		l.log(ctx, WarnLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	}
 	if l.passthrough {
 		fmt.Println(message)
-	}
-}
-
-// Warnf logs a formatted message at WARN level
-func (l *Logger) Warnf(ctx context.Context, format string, args ...interface{}) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, WarnLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
-	if l.passthrough {
-		fmt.Println(fmt.Sprintf(format, args...))
 	}
 }
 
 // Info logs a message at INFO level
 func (l *Logger) Info(ctx context.Context, message string, attrs ...log.KeyValue) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, InfoLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	if !l.noop {
+		callerAttrs := getCallerAttrs()
+		l.log(ctx, InfoLevel, message, nil, append(l.attributes, callerAttrs...)...)
+	}
 	if l.passthrough {
 		fmt.Println(message)
-	}
-}
-
-// Infof logs a formatted message at INFO level
-func (l *Logger) Infof(ctx context.Context, format string, args ...interface{}) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, InfoLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
-	if l.passthrough {
-		fmt.Println(fmt.Sprintf(format, args...))
 	}
 }
 
 // Error logs a message at ERROR level
 func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...log.KeyValue) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, ErrorLevel, message, err, append(l.attributes, callerAttrs...)...)
+	if !l.noop {
+		callerAttrs := getCallerAttrs()
+		l.log(ctx, ErrorLevel, message, err, append(l.attributes, callerAttrs...)...)
+	}
 	if l.passthrough {
 		fmt.Println(message)
-	}
-}
-
-// Errorf logs a formatted message at ERROR level
-func (l *Logger) Errorf(ctx context.Context, format string, args ...interface{}) {
-	callerAttrs := getCallerAttrs()
-	l.log(ctx, ErrorLevel, fmt.Sprintf(format, args...), nil, append(l.attributes, callerAttrs...)...)
-	if l.passthrough {
-		fmt.Println(fmt.Sprintf(format, args...))
 	}
 }
 
