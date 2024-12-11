@@ -143,7 +143,9 @@ func NewLogger(
 func (l *Logger) Debug(ctx context.Context, message string, attrs ...log.KeyValue) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
-		l.log(ctx, DebugLevel, message, nil, append(l.attributes, callerAttrs...)...)
+		allAttrs := append(l.attributes, callerAttrs...)
+		allAttrs = append(allAttrs, attrs...)
+		l.log(ctx, DebugLevel, message, nil, allAttrs...)
 	}
 	if l.passthrough {
 		fmt.Println(message)
@@ -154,7 +156,9 @@ func (l *Logger) Debug(ctx context.Context, message string, attrs ...log.KeyValu
 func (l *Logger) Warn(ctx context.Context, message string, attrs ...log.KeyValue) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
-		l.log(ctx, WarnLevel, message, nil, append(l.attributes, callerAttrs...)...)
+		allAttrs := append(l.attributes, callerAttrs...)
+		allAttrs = append(allAttrs, attrs...)
+		l.log(ctx, WarnLevel, message, nil, allAttrs...)
 	}
 	if l.passthrough {
 		fmt.Println(message)
@@ -165,7 +169,9 @@ func (l *Logger) Warn(ctx context.Context, message string, attrs ...log.KeyValue
 func (l *Logger) Info(ctx context.Context, message string, attrs ...log.KeyValue) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
-		l.log(ctx, InfoLevel, message, nil, append(l.attributes, callerAttrs...)...)
+		allAttrs := append(l.attributes, callerAttrs...)
+		allAttrs = append(allAttrs, attrs...)
+		l.log(ctx, InfoLevel, message, nil, allAttrs...)
 	}
 	if l.passthrough {
 		fmt.Println(message)
@@ -176,7 +182,9 @@ func (l *Logger) Info(ctx context.Context, message string, attrs ...log.KeyValue
 func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...log.KeyValue) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
-		l.log(ctx, ErrorLevel, message, err, append(l.attributes, callerAttrs...)...)
+		allAttrs := append(l.attributes, callerAttrs...)
+		allAttrs = append(allAttrs, attrs...)
+		l.log(ctx, ErrorLevel, message, err, allAttrs...)
 	}
 	if l.passthrough {
 		fmt.Println(message)
