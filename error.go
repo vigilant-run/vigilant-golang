@@ -181,11 +181,7 @@ func (h *ErrorHandler) sendBatch(ctx context.Context) error {
 		return nil
 	}
 
-	payload := map[string]interface{}{
-		"errors": h.batchedErrors,
-	}
-
-	data, err := json.Marshal(payload)
+	data, err := json.Marshal(h.batchedErrors)
 	if err != nil {
 		return fmt.Errorf("failed to marshal error payload: %w", err)
 	}
@@ -215,12 +211,14 @@ func (h *ErrorHandler) sendBatch(ctx context.Context) error {
 
 // parseError parses the error and returns the internal error structure
 func (h *ErrorHandler) parseError(err error, attrs ...Attribute) *internalError {
-	allAttrs := []Attribute{{Key: "service", Value: h.options.name}}
+	serviceAttr := Attribute{Key: "service", Value: h.options.name}
+	stackAttr := Attribute{Key: "stack", Value: h.getStackTrace(err)}
+	allAttrs := []Attribute{serviceAttr, stackAttr}
+	allAttrs = append(allAttrs, attrs...)
 	return &internalError{
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
 		Error:      err.Error(),
-		Attributes: append(allAttrs, attrs...),
-		Stack:      h.getStackTrace(err),
+		Attributes: allAttrs,
 	}
 }
 
