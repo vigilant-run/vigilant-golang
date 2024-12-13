@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -210,15 +211,31 @@ func (h *ErrorHandler) sendBatch(ctx context.Context) error {
 
 // parseError parses the error and returns the internal error structure
 func (h *ErrorHandler) parseError(err error, attrs ...Attribute) *internalError {
-	serviceAttr := NewAttribute("service", h.options.name)
-	stackAttr := NewAttribute("stack", h.getStackTrace(err))
-	allAttrs := []Attribute{serviceAttr, stackAttr}
-	allAttrs = append(allAttrs, attrs...)
 	return &internalError{
 		Timestamp:  time.Now().UTC(),
 		Error:      err.Error(),
-		Attributes: allAttrs,
+		Attributes: h.getErrorAttributes(err, attrs...),
 	}
+}
+
+// getErrorAttributes returns the attributes for the given error
+func (h *ErrorHandler) getErrorAttributes(err error, attrs ...Attribute) []Attribute {
+	filename := getFilename(5)
+	line := getFileline(5)
+	os := getOS()
+	arch := getArch()
+	goVersion := getGoVersion()
+	allAttrs := []Attribute{
+		NewAttribute("service", h.options.name),
+		NewAttribute("function", getFunctionName(5)),
+		NewAttribute("filename", filename),
+		NewAttribute("line", line),
+		NewAttribute("stack", h.getStackTrace(err)),
+		NewAttribute("os", os),
+		NewAttribute("arch", arch),
+		NewAttribute("go.version", goVersion),
+	}
+	return append(allAttrs, attrs...)
 }
 
 // getStackTrace returns the stack trace for the given error
@@ -227,4 +244,46 @@ func (h *ErrorHandler) getStackTrace(err error) string {
 		return ""
 	}
 	return string(debug.Stack())
+}
+
+// getFilename returns the filename where the error occurred
+func getFilename(skip int) string {
+	_, file, _, ok := runtime.Caller(skip)
+	if !ok {
+		return ""
+	}
+	return file
+}
+
+// getFunctionName returns the name of the function that called the given error
+func getFunctionName(skip int) string {
+	pc, _, _, ok := runtime.Caller(skip)
+	if !ok {
+		return ""
+	}
+	return runtime.FuncForPC(pc).Name()
+}
+
+// getFileline returns the line number where the error occurred
+func getFileline(skip int) int {
+	_, _, line, ok := runtime.Caller(skip)
+	if !ok {
+		return 0
+	}
+	return line
+}
+
+// getOS returns the operating system
+func getOS() string {
+	return runtime.GOOS
+}
+
+// getArch returns the architecture
+func getArch() string {
+	return runtime.GOARCH
+}
+
+// getGoVersion returns the Go version
+func getGoVersion() string {
+	return runtime.Version()
 }
