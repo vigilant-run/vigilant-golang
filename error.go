@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const ERRORS_PATH = "/api/errors"
+
 // ErrorHandlerOptions are the options for the ErrorCaptureHandler
 type ErrorHandlerOptions struct {
 	url      string
@@ -53,7 +55,6 @@ func WithErrorHandlerInsecure() ErrorHandlerOption {
 // internalError is an internal error that is used to wrap errors
 type internalError struct {
 	Timestamp  string      `json:"timestamp"`
-	Name       string      `json:"name"`
 	Error      string      `json:"error"`
 	Attributes []Attribute `json:"attributes"`
 	Stack      string      `json:"stack"`
@@ -75,7 +76,7 @@ type ErrorHandler struct {
 // NewErrorHandler creates a new ErrorHandler
 func NewErrorHandler(opts ...ErrorHandlerOption) (*ErrorHandler, error) {
 	options := &ErrorHandlerOptions{
-		url:  "https://errors.vigilant.run/capture",
+		url:  "https://errors.vigilant.run" + ERRORS_PATH,
 		name: "go-server",
 	}
 
@@ -214,11 +215,11 @@ func (h *ErrorHandler) sendBatch(ctx context.Context) error {
 
 // parseError parses the error and returns the internal error structure
 func (h *ErrorHandler) parseError(err error, attrs ...Attribute) *internalError {
+	allAttrs := []Attribute{{Key: "service", Value: h.options.name}}
 	return &internalError{
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
-		Name:       h.options.name,
 		Error:      err.Error(),
-		Attributes: attrs,
+		Attributes: append(allAttrs, attrs...),
 		Stack:      h.getStackTrace(err),
 	}
 }
