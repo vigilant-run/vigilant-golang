@@ -54,10 +54,9 @@ func WithErrorHandlerInsecure() ErrorHandlerOption {
 
 // internalError is an internal error that is used to wrap errors
 type internalError struct {
-	Timestamp  string      `json:"timestamp"`
+	Timestamp  time.Time   `json:"timestamp"`
 	Error      string      `json:"error"`
 	Attributes []Attribute `json:"attributes"`
-	Stack      string      `json:"stack"`
 }
 
 // ErrorHandler captures and sends errors to the error server
@@ -216,7 +215,7 @@ func (h *ErrorHandler) parseError(err error, attrs ...Attribute) *internalError 
 	allAttrs := []Attribute{serviceAttr, stackAttr}
 	allAttrs = append(allAttrs, attrs...)
 	return &internalError{
-		Timestamp:  time.Now().UTC().Format(time.RFC3339),
+		Timestamp:  time.Now().UTC(),
 		Error:      err.Error(),
 		Attributes: allAttrs,
 	}
