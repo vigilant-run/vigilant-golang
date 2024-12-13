@@ -8,8 +8,8 @@ import (
 
 // Attribute is a map of metadata to be sent with the error
 type Attribute struct {
-	Key   string
-	Value interface{}
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
 }
 
 // NewAttribute creates a new Attribute

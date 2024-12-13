@@ -210,8 +210,8 @@ func (h *ErrorHandler) sendBatch(ctx context.Context) error {
 
 // parseError parses the error and returns the internal error structure
 func (h *ErrorHandler) parseError(err error, attrs ...Attribute) *internalError {
-	serviceAttr := Attribute{Key: "service", Value: h.options.name}
-	stackAttr := Attribute{Key: "stack", Value: h.getStackTrace(err)}
+	serviceAttr := NewAttribute("service", h.options.name)
+	stackAttr := NewAttribute("stack", h.getStackTrace(err))
 	allAttrs := []Attribute{serviceAttr, stackAttr}
 	allAttrs = append(allAttrs, attrs...)
 	return &internalError{
