@@ -35,7 +35,7 @@ func WithErrorHandlerName(name string) ErrorHandlerOption {
 // WithErrorHandlerURL sets the server URL for the error handler
 func WithErrorHandlerURL(url string) ErrorHandlerOption {
 	return func(opts *ErrorHandlerOptions) {
-		opts.url = url
+		opts.url = url + ERRORS_PATH
 	}
 }
 

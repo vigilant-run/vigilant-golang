@@ -50,7 +50,7 @@ import (
 func main() {
     // Create the error handler options
     errorHandlerOptions := vigilant.NewErrorHandlerOptions(
-        vigilant.WithErrorHandlerURL("https://errors.vigilant.run/capture"),
+        vigilant.WithErrorHandlerURL("https://errors.vigilant.run"),
         vigilant.WithErrorHandlerToken("tk_1234567890"),
         vigilant.WithErrorHandlerName("sample-app"),
     )
