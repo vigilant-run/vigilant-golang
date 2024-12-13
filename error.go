@@ -220,17 +220,19 @@ func (h *ErrorHandler) parseError(err error, attrs ...Attribute) *internalError 
 
 // getErrorAttributes returns the attributes for the given error
 func (h *ErrorHandler) getErrorAttributes(err error, attrs ...Attribute) []Attribute {
-	filename := getFilename(5)
-	line := getFileline(5)
+	filename := getFilename(4)
+	line := getFileline(4)
+	function := getFunctionName(4)
+	stack := h.getStackTrace(err)
 	os := getOS()
 	arch := getArch()
 	goVersion := getGoVersion()
 	allAttrs := []Attribute{
 		NewAttribute("service", h.options.name),
-		NewAttribute("function", getFunctionName(5)),
+		NewAttribute("function", function),
 		NewAttribute("filename", filename),
 		NewAttribute("line", line),
-		NewAttribute("stack", h.getStackTrace(err)),
+		NewAttribute("stack", stack),
 		NewAttribute("os", os),
 		NewAttribute("arch", arch),
 		NewAttribute("go.version", goVersion),
