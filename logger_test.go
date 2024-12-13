@@ -30,7 +30,7 @@ func TestLogger(t *testing.T) {
 		}
 		logger := NewLogger(opts)
 
-		logger.Info(context.Background(), "test message", log.Int("count", 1))
+		logger.Info(context.Background(), "test message", NewAttribute("count", 1))
 
 		if len(mock.records) != 1 {
 			t.Fatalf("expected 1 record, got %d", len(mock.records))
@@ -64,7 +64,7 @@ func TestLogger(t *testing.T) {
 		mock := &mockLogger{}
 		opts := &LoggerOptions{
 			otelLogger: mock,
-			attributes: []log.KeyValue{log.String("default", "value")},
+			attributes: []Attribute{NewAttribute("default", "value")},
 		}
 		logger := NewLogger(opts)
 

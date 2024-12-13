@@ -19,7 +19,7 @@ import (
 type LoggerOptions struct {
 	otelLogger  log.Logger
 	name        string
-	attributes  []log.KeyValue
+	attributes  []Attribute
 	url         string
 	token       string
 	passthrough bool
@@ -31,10 +31,10 @@ type LoggerOptions struct {
 func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
 	options := &LoggerOptions{
 		otelLogger:  nil,
-		name:        "",
-		attributes:  []log.KeyValue{},
-		url:         "",
-		token:       "",
+		name:        "go-server",
+		attributes:  []Attribute{},
+		url:         "log.vigilant.run:4317",
+		token:       "tk_1234567890",
 		passthrough: false,
 		insecure:    false,
 	}
@@ -49,57 +49,57 @@ func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
 // LoggerOption is a function that configures the logger
 type LoggerOption func(*LoggerOptions)
 
-// WithService adds the service name to the logger
-func WithName(name string) LoggerOption {
+// WithLoggerName adds the service name to the logger
+func WithLoggerName(name string) LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.name = name
 	}
 }
 
-// WithAttributes adds default attributes to all log messages
-func WithAttributes(attrs ...log.KeyValue) LoggerOption {
+// WithLoggerAttributes adds default attributes to all log messages
+func WithLoggerAttributes(attrs ...Attribute) LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.attributes = append(opts.attributes, attrs...)
 	}
 }
 
-// WithURL adds the URL to the logger
-func WithURL(url string) LoggerOption {
+// WithLoggerURL adds the URL to the logger
+func WithLoggerURL(url string) LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.url = url
 	}
 }
 
-// WithToken adds the token to the logger
-func WithToken(token string) LoggerOption {
+// WithLoggerToken adds the token to the logger
+func WithLoggerToken(token string) LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.token = token
 	}
 }
 
-// WithOTELLogger adds the OTEL logger to the logger
-func WithOTELLogger(otelLogger log.Logger) LoggerOption {
+// WithLoggerOTELLogger adds the OTEL logger to the logger
+func WithLoggerOTELLogger(otelLogger log.Logger) LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.otelLogger = otelLogger
 	}
 }
 
-// WithPassthrough also logs fmt.Println
-func WithPassthrough() LoggerOption {
+// WithLoggerPassthrough also logs fmt.Println
+func WithLoggerPassthrough() LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.passthrough = true
 	}
 }
 
-// WithNoop disables the logger
-func WithNoop() LoggerOption {
+// WithLoggerNoop disables the logger
+func WithLoggerNoop() LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.noop = true
 	}
 }
 
-// WithInsecure disables TLS verification
-func WithInsecure() LoggerOption {
+// WithLoggerInsecure disables TLS verification
+func WithLoggerInsecure() LoggerOption {
 	return func(opts *LoggerOptions) {
 		opts.insecure = true
 	}
@@ -108,7 +108,7 @@ func WithInsecure() LoggerOption {
 // Logger wraps the OpenTelemetry logger
 type Logger struct {
 	otelLogger  log.Logger
-	attributes  []log.KeyValue
+	attributes  []Attribute
 	passthrough bool
 	noop        bool
 }
@@ -140,7 +140,7 @@ func NewLogger(
 }
 
 // Debug logs a message at DEBUG level
-func (l *Logger) Debug(ctx context.Context, message string, attrs ...log.KeyValue) {
+func (l *Logger) Debug(ctx context.Context, message string, attrs ...Attribute) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
 		allAttrs := append(l.attributes, callerAttrs...)
@@ -153,7 +153,7 @@ func (l *Logger) Debug(ctx context.Context, message string, attrs ...log.KeyValu
 }
 
 // Warn logs a message at WARN level
-func (l *Logger) Warn(ctx context.Context, message string, attrs ...log.KeyValue) {
+func (l *Logger) Warn(ctx context.Context, message string, attrs ...Attribute) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
 		allAttrs := append(l.attributes, callerAttrs...)
@@ -166,7 +166,7 @@ func (l *Logger) Warn(ctx context.Context, message string, attrs ...log.KeyValue
 }
 
 // Info logs a message at INFO level
-func (l *Logger) Info(ctx context.Context, message string, attrs ...log.KeyValue) {
+func (l *Logger) Info(ctx context.Context, message string, attrs ...Attribute) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
 		allAttrs := append(l.attributes, callerAttrs...)
@@ -179,7 +179,7 @@ func (l *Logger) Info(ctx context.Context, message string, attrs ...log.KeyValue
 }
 
 // Error logs a message at ERROR level
-func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...log.KeyValue) {
+func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...Attribute) {
 	if !l.noop {
 		callerAttrs := getCallerAttrs()
 		allAttrs := append(l.attributes, callerAttrs...)
@@ -197,7 +197,7 @@ func (l *Logger) log(
 	level LogLevel,
 	message string,
 	err error,
-	attrs ...log.KeyValue,
+	attrs ...Attribute,
 ) {
 	record := log.Record{}
 	record.SetSeverity(getSeverity(level))
@@ -205,7 +205,12 @@ func (l *Logger) log(
 	record.SetTimestamp(time.Now())
 
 	allAttrs := append(l.attributes, attrs...)
-	record.AddAttributes(allAttrs...)
+	logAttrs := []log.KeyValue{}
+	for _, attr := range allAttrs {
+		logAttrs = append(logAttrs, attr.ToLogKV())
+	}
+
+	record.AddAttributes(logAttrs...)
 
 	if err != nil {
 		record.AddAttributes(log.String("error", err.Error()))
@@ -307,12 +312,12 @@ func getOtelLogger(
 }
 
 // getCallerAttrs returns the caller attributes
-func getCallerAttrs() []log.KeyValue {
+func getCallerAttrs() []Attribute {
 	file, line, fn := getCallerInfo()
-	return []log.KeyValue{
-		log.String("caller.file", file),
-		log.Int("caller.line", line),
-		log.String("caller.function", fn),
+	return []Attribute{
+		NewAttribute("caller.file", file),
+		NewAttribute("caller.line", line),
+		NewAttribute("caller.function", fn),
 	}
 }
 
