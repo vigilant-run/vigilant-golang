@@ -20,6 +20,7 @@ type ErrorHandlerOptions struct {
 	token    string
 	insecure bool
 	name     string
+	noop     bool
 }
 
 // ErrorHandlerOption is a function that configures the ErrorHandlerOptions
@@ -50,6 +51,13 @@ func WithErrorHandlerToken(token string) ErrorHandlerOption {
 func WithErrorHandlerInsecure() ErrorHandlerOption {
 	return func(opts *ErrorHandlerOptions) {
 		opts.insecure = true
+	}
+}
+
+// WithErrorHandlerNoop disables the error handler
+func WithErrorHandlerNoop() ErrorHandlerOption {
+	return func(opts *ErrorHandlerOptions) {
+		opts.noop = true
 	}
 }
 
@@ -108,6 +116,10 @@ func NewErrorHandler(opts ...ErrorHandlerOption) (*ErrorHandler, error) {
 
 // Capture sends an error event to the error server
 func (h *ErrorHandler) Capture(ctx context.Context, err error, attrs ...Attribute) error {
+	if h.options.noop {
+		return nil
+	}
+
 	select {
 	case h.newErrors <- h.parseError(err, attrs...):
 		return nil
