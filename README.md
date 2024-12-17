@@ -36,7 +36,7 @@ func main() {
 }
 ```
 
-## Usage (Error Handler)
+## Usage (Event Capture)
 
 ```go
 package main
@@ -48,20 +48,23 @@ import (
 )
 
 func main() {
-    // Create the error handler options
-    errorHandlerOptions := vigilant.NewErrorHandlerOptions(
-        vigilant.WithErrorHandlerURL("https://errors.vigilant.run"),
-        vigilant.WithErrorHandlerToken("tk_1234567890"),
-        vigilant.WithErrorHandlerName("sample-app"),
+    // Create the event capture options
+    eventCaptureOptions := vigilant.NewEventCaptureOptions(
+        vigilant.WithEventCaptureURL("https://events.vigilant.run"),
+        vigilant.WithEventCaptureToken("tk_1234567890"),
+        vigilant.WithEventCaptureName("sample-app"),
     )
 
-    // Create the error handler
-    errorHandler := vigilant.NewErrorHandler(errorHandlerOptions)
+    // Create the event capture
+    eventCapture := vigilant.NewEventCapture(eventCaptureOptions)
 
     // Capture an error
     err := errors.New("This is a test error")
 
     // Capture the error
-    errorHandler.Capture(context.Background(), err)
+    eventCapture.CaptureError(err)
+
+    // Capture a message
+    eventCapture.CaptureMessage("This is a test message")
 }
 ```

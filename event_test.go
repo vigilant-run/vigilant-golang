@@ -1,7 +1,6 @@
 package vigilant
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -29,27 +28,27 @@ func newCustomError(msg string) *customError {
 func TestNewErrorHandler(t *testing.T) {
 	tests := []struct {
 		name    string
-		opts    []ErrorHandlerOption
+		opts    []EventHandlerOption
 		wantErr bool
 	}{
 		{
 			name:    "no options",
-			opts:    []ErrorHandlerOption{},
+			opts:    []EventHandlerOption{},
 			wantErr: true,
 		},
 		{
 			name: "with valid options",
-			opts: []ErrorHandlerOption{
-				WithErrorHandlerURL("https://test.com"),
-				WithErrorHandlerToken("test-token"),
-				WithErrorHandlerName("test-service"),
+			opts: []EventHandlerOption{
+				WithEventHandlerURL("https://test.com"),
+				WithEventHandlerToken("test-token"),
+				WithEventHandlerName("test-service"),
 			},
 			wantErr: false,
 		},
 		{
 			name: "missing token",
-			opts: []ErrorHandlerOption{
-				WithErrorHandlerURL("https://test.com"),
+			opts: []EventHandlerOption{
+				WithEventHandlerURL("https://test.com"),
 			},
 			wantErr: true,
 		},
@@ -57,9 +56,9 @@ func TestNewErrorHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler, err := NewErrorHandler(tt.opts...)
+			handler, err := NewEventHandler(tt.opts...)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewErrorHandler() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewEventHandler() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err == nil {
 				handler.Shutdown()
@@ -84,13 +83,13 @@ func TestErrorHandlerCapture(t *testing.T) {
 	}))
 	defer server.Close()
 
-	handler, err := NewErrorHandler(
-		WithErrorHandlerURL(server.URL),
-		WithErrorHandlerToken("test-token"),
-		WithErrorHandlerName("test-service"),
+	handler, err := NewEventHandler(
+		WithEventHandlerURL(server.URL),
+		WithEventHandlerToken("test-token"),
+		WithEventHandlerName("test-service"),
 	)
 	if err != nil {
-		t.Fatalf("Failed to create ErrorHandler: %v", err)
+		t.Fatalf("Failed to create EventHandler: %v", err)
 	}
 
 	defer handler.Shutdown()
@@ -98,32 +97,28 @@ func TestErrorHandlerCapture(t *testing.T) {
 	tests := []struct {
 		name    string
 		err     error
-		attrs   []Attribute
 		wantErr bool
 	}{
 		{
 			name:    "basic error",
 			err:     fmt.Errorf("test error"),
-			attrs:   []Attribute{{Key: "test", Value: true}},
 			wantErr: false,
 		},
 		{
 			name:    "custom error with stack",
 			err:     newCustomError("custom error"),
-			attrs:   []Attribute{{Key: "test", Value: true}},
 			wantErr: false,
 		},
 		{
 			name:    "nil metadata",
 			err:     fmt.Errorf("error without metadata"),
-			attrs:   nil,
 			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			captureErr := handler.Capture(context.Background(), tt.err, tt.attrs...)
+			captureErr := handler.CaptureError(tt.err)
 			if (captureErr != nil) != tt.wantErr {
 				t.Errorf("Capture() error = %v, wantErr %v", captureErr, tt.wantErr)
 			}
