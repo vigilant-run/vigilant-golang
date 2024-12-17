@@ -136,6 +136,7 @@ func NewLogger(
 		otelLogger:  otelLogger,
 		attributes:  opts.attributes,
 		passthrough: opts.passthrough,
+		noop:        opts.noop,
 	}
 }
 
