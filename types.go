@@ -2,6 +2,7 @@ package vigilant
 
 import (
 	"fmt"
+	"time"
 
 	"go.opentelemetry.io/otel/log"
 )
@@ -57,4 +58,31 @@ func (a Attribute) ToLogKV() log.KeyValue {
 		return log.Int64(a.Key, int64(v))
 	}
 	return log.String(a.Key, fmt.Sprintf("%v", a.Value))
+}
+
+// internalEvent is an internal event that is used to wrap events
+type internalEvent struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Message    *string           `json:"message,omitempty"`
+	Exceptions exceptions        `json:"exceptions"`
+	Metadata   map[string]string `json:"metadata"`
+}
+
+// exceptions is an array of exceptions
+type exceptions []exception
+
+// exception is an array of exceptions
+type exception struct {
+	Type  string  `json:"type"`
+	Value string  `json:"value"`
+	Stack []frame `json:"stack"`
+}
+
+// frame is a single frame in the stack trace
+type frame struct {
+	Function string `json:"function,omitempty"`
+	Module   string `json:"module,omitempty"`
+	File     string `json:"file,omitempty"`
+	Line     int    `json:"line,omitempty"`
+	Internal bool   `json:"internal,omitempty"`
 }
