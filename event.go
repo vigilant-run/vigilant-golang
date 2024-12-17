@@ -329,6 +329,15 @@ func getException(err error) exception {
 	return exception
 }
 
+// prohibitedModules are the modules that are not allowed to be sent to the event server
+var prohibitedModules = []string{
+	"runtime",
+	"testing",
+	"vendor",
+	"third_party",
+	"github.com/vigilant-run/vigilant-go",
+}
+
 // getStackFrames extracts stack frames from the current goroutine
 func getStackFrames() []frame {
 	pointers := make([]uintptr, 50)
@@ -346,24 +355,22 @@ func getStackFrames() []frame {
 			break
 		}
 
-		if callerFrame.Function == "" ||
-			strings.HasPrefix(callerFrame.Function, "runtime.") ||
-			strings.HasPrefix(callerFrame.Function, "testing.") ||
-			strings.Contains(callerFrame.Function, "vigilant.") {
-			continue
-		}
-
 		module, function := splitFunctionName(callerFrame.Function)
-		inApp := !strings.HasPrefix(callerFrame.File, runtime.GOROOT()) &&
-			!strings.Contains(module, "vendor") &&
-			!strings.Contains(module, "third_party")
+
+		isInternal := true
+		for _, prohibitedModule := range prohibitedModules {
+			if strings.Contains(module, prohibitedModule) {
+				isInternal = false
+				break
+			}
+		}
 
 		frames = append(frames, frame{
 			Function: function,
 			Module:   module,
 			File:     callerFrame.File,
 			Line:     callerFrame.Line,
-			Internal: inApp,
+			Internal: isInternal,
 		})
 
 		if !more {
