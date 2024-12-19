@@ -49,22 +49,22 @@ import (
 
 func main() {
     // Create the event capture options
-    eventCaptureOptions := vigilant.NewEventCaptureOptions(
+    eventHandlerOptions := vigilant.NewEventHandlerOptions(
         vigilant.WithEventCaptureURL("https://events.vigilant.run"),
         vigilant.WithEventCaptureToken("tk_1234567890"),
         vigilant.WithEventCaptureName("sample-app"),
     )
 
     // Create the event capture
-    eventCapture := vigilant.NewEventCapture(eventCaptureOptions)
+    eventHandler := vigilant.NewEventHandler(eventHandlerOptions)
+
+    // Shutdown the event handler when the program exits
+    defer eventHandler.Shutdown()
 
     // Capture an error
-    err := errors.New("This is a test error")
-
-    // Capture the error
-    eventCapture.CaptureError(err)
+    eventHandler.CaptureError(errors.New("This is a test error"))
 
     // Capture a message
-    eventCapture.CaptureMessage("This is a test message")
+    eventHandler.CaptureMessage("This is a test message")
 }
 ```

@@ -37,6 +37,7 @@ func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
 		token:       "tk_1234567890",
 		passthrough: false,
 		insecure:    false,
+		noop:        false,
 	}
 
 	for _, opt := range opts {

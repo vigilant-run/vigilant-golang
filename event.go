@@ -26,6 +26,23 @@ type EventHandlerOptions struct {
 	noop     bool
 }
 
+// NewEventHandlerOptions creates a new EventHandlerOptions
+func NewEventHandlerOptions(opts ...EventHandlerOption) *EventHandlerOptions {
+	options := &EventHandlerOptions{
+		url:      "https://errors.vigilant.run" + EVENTS_PATH,
+		token:    "tk_1234567890",
+		name:     "go-server",
+		noop:     false,
+		insecure: false,
+	}
+
+	for _, opt := range opts {
+		opt(options)
+	}
+
+	return options
+}
+
 // EventHandlerOption is a function that configures the EventHandlerOptions
 type EventHandlerOption func(*EventHandlerOptions)
 
