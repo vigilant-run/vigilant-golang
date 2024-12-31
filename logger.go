@@ -150,7 +150,7 @@ func (l *Logger) Debug(ctx context.Context, message string, attrs ...Attribute) 
 		l.log(ctx, DebugLevel, message, nil, allAttrs...)
 	}
 	if l.passthrough {
-		fmt.Println(message)
+		fmt.Println(message, attrs)
 	}
 }
 
@@ -163,7 +163,7 @@ func (l *Logger) Warn(ctx context.Context, message string, attrs ...Attribute) {
 		l.log(ctx, WarnLevel, message, nil, allAttrs...)
 	}
 	if l.passthrough {
-		fmt.Println(message)
+		fmt.Println(message, attrs)
 	}
 }
 
@@ -176,7 +176,7 @@ func (l *Logger) Info(ctx context.Context, message string, attrs ...Attribute) {
 		l.log(ctx, InfoLevel, message, nil, allAttrs...)
 	}
 	if l.passthrough {
-		fmt.Println(message)
+		fmt.Println(message, attrs)
 	}
 }
 
@@ -189,7 +189,7 @@ func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...
 		l.log(ctx, ErrorLevel, message, err, allAttrs...)
 	}
 	if l.passthrough {
-		fmt.Println(message)
+		fmt.Println(message, err, attrs)
 	}
 }
 
