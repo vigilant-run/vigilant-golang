@@ -78,13 +78,6 @@ func WithLoggerToken(token string) LoggerOption {
 	}
 }
 
-// WithLoggerOTELLogger adds the OTEL logger to the logger
-func WithLoggerOTELLogger(otelLogger log.Logger) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.otelLogger = otelLogger
-	}
-}
-
 // WithLoggerPassthrough also logs fmt.Println
 func WithLoggerPassthrough() LoggerOption {
 	return func(opts *LoggerOptions) {
@@ -108,6 +101,7 @@ func WithLoggerInsecure() LoggerOption {
 
 // Logger wraps the OpenTelemetry logger
 type Logger struct {
+	provider    *sdklog.LoggerProvider
 	otelLogger  log.Logger
 	attributes  []Attribute
 	passthrough bool
@@ -128,12 +122,13 @@ const (
 func NewLogger(
 	opts *LoggerOptions,
 ) *Logger {
-	otelLogger, err := getOtelLogger(opts)
+	provider, otelLogger, err := getOtelLogger(opts)
 	if err != nil {
 		panic(err)
 	}
 
 	return &Logger{
+		provider:    provider,
 		otelLogger:  otelLogger,
 		attributes:  opts.attributes,
 		passthrough: opts.passthrough,
@@ -193,6 +188,11 @@ func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...
 	}
 }
 
+// Shutdown shuts down the logger
+func (l *Logger) Shutdown(ctx context.Context) error {
+	return l.provider.Shutdown(ctx)
+}
+
 // log handles the actual logging
 func (l *Logger) log(
 	ctx context.Context,
@@ -246,7 +246,7 @@ func newOtelLogger(
 	token string,
 	name string,
 	insecure bool,
-) (log.Logger, error) {
+) (*sdklog.LoggerProvider, log.Logger, error) {
 	opts := []otlploggrpc.Option{
 		otlploggrpc.WithEndpoint(url),
 		otlploggrpc.WithHeaders(map[string]string{
@@ -262,7 +262,7 @@ func newOtelLogger(
 		opts...,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create exporter: %w", err)
+		return nil, nil, fmt.Errorf("failed to create exporter: %w", err)
 	}
 
 	attrs := []attribute.KeyValue{}
@@ -282,15 +282,15 @@ func newOtelLogger(
 		),
 	)
 
-	return provider.Logger(name), nil
+	return provider, provider.Logger(name), nil
 }
 
 // getOtelLogger creates a new OpenTelemetry logger with OTLP export
 func getOtelLogger(
 	opts *LoggerOptions,
-) (log.Logger, error) {
+) (*sdklog.LoggerProvider, log.Logger, error) {
 	if opts.otelLogger != nil {
-		return opts.otelLogger, nil
+		return nil, opts.otelLogger, nil
 	}
 
 	var name string = "example"
@@ -313,7 +313,12 @@ func getOtelLogger(
 		insecure = opts.insecure
 	}
 
-	return newOtelLogger(url, token, name, insecure)
+	provider, logger, err := newOtelLogger(url, token, name, insecure)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return provider, logger, nil
 }
 
 // getCallerAttrs returns the caller attributes

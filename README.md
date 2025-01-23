@@ -32,5 +32,8 @@ func main() {
 
     // Log a message
     logger.Info(context.Background(), "Hello, World!")
+
+    // Shutdown the logger
+    logger.Shutdown(context.Background())
 }
 ```
