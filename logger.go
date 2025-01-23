@@ -209,7 +209,10 @@ func (l *Logger) log(
 	allAttrs := append(l.attributes, attrs...)
 	logAttrs := []log.KeyValue{}
 	for _, attr := range allAttrs {
-		logAttrs = append(logAttrs, attr.ToLogKV())
+		if attr.Key == "" {
+			continue
+		}
+		logAttrs = append(logAttrs, attr.toLogKV())
 	}
 
 	record.AddAttributes(logAttrs...)
