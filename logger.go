@@ -1,352 +1,278 @@
 package vigilant
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"runtime"
-	"strings"
+	"net/http"
+	"sync"
 	"time"
-
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
-	"go.opentelemetry.io/otel/log"
-	sdklog "go.opentelemetry.io/otel/sdk/log"
-	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 )
 
-// LoggerOptions are the options for the Logger
-type LoggerOptions struct {
-	otelLogger  log.Logger
+// LoggerBuilder are the options for the Logger
+type LoggerBuilder struct {
 	name        string
-	attributes  []Attribute
-	url         string
+	endpoint    string
 	token       string
 	passthrough bool
-	noop        bool
 	insecure    bool
 }
 
-// NewLoggerOptions creates a new LoggerOptions
-func NewLoggerOptions(opts ...LoggerOption) *LoggerOptions {
-	options := &LoggerOptions{
-		otelLogger:  nil,
+// NewLoggerBuilder creates a new LoggerBuilder
+func NewLoggerBuilder() *LoggerBuilder {
+	return &LoggerBuilder{
 		name:        "go-server",
-		attributes:  []Attribute{},
-		url:         "log.vigilant.run:4317",
+		endpoint:    "ingress.vigilant.run",
 		token:       "tk_1234567890",
-		passthrough: false,
+		passthrough: true,
 		insecure:    false,
-		noop:        false,
-	}
-
-	for _, opt := range opts {
-		opt(options)
-	}
-
-	return options
-}
-
-// LoggerOption is a function that configures the logger
-type LoggerOption func(*LoggerOptions)
-
-// WithLoggerName adds the service name to the logger
-func WithLoggerName(name string) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.name = name
 	}
 }
 
-// WithLoggerAttributes adds default attributes to all log messages
-func WithLoggerAttributes(attrs ...Attribute) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.attributes = append(opts.attributes, attrs...)
-	}
+// WithName adds the service name to the logger
+func (o *LoggerBuilder) WithName(name string) *LoggerBuilder {
+	o.name = name
+	return o
 }
 
-// WithLoggerURL adds the URL to the logger
-func WithLoggerURL(url string) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.url = url
-	}
+// WithEndpoint adds the endpoint to the logger
+func (o *LoggerBuilder) WithEndpoint(endpoint string) *LoggerBuilder {
+	o.endpoint = endpoint
+	return o
 }
 
-// WithLoggerToken adds the token to the logger
-func WithLoggerToken(token string) LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.token = token
-	}
+// WithToken adds the token to the logger
+func (o *LoggerBuilder) WithToken(token string) *LoggerBuilder {
+	o.token = token
+	return o
 }
 
-// WithLoggerPassthrough also logs fmt.Println
-func WithLoggerPassthrough() LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.passthrough = true
-	}
+// WithPassthrough also logs fmt.Println
+func (o *LoggerBuilder) WithPassthrough() *LoggerBuilder {
+	o.passthrough = true
+	return o
 }
 
-// WithLoggerNoop disables the logger
-func WithLoggerNoop() LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.noop = true
-	}
+// WithInsecure disables TLS verification
+func (o *LoggerBuilder) WithInsecure() *LoggerBuilder {
+	o.insecure = true
+	return o
 }
 
-// WithLoggerInsecure disables TLS verification
-func WithLoggerInsecure() LoggerOption {
-	return func(opts *LoggerOptions) {
-		opts.insecure = true
-	}
+// Build builds the logger
+func (o *LoggerBuilder) Build() *Logger {
+	return NewLogger(o.name, o.endpoint, o.token, o.passthrough, o.insecure)
 }
 
-// Logger wraps the OpenTelemetry logger
+// Logger is the logger for the Vigilant platform
 type Logger struct {
-	provider    *sdklog.LoggerProvider
-	otelLogger  log.Logger
-	attributes  []Attribute
+	name        string
+	endpoint    string
+	token       string
 	passthrough bool
-	noop        bool
+	insecure    bool
+
+	logsQueue chan *logMessage
+	batchStop chan struct{}
+	wg        sync.WaitGroup
 }
 
-// LogLevel represents the severity of the log message
-type LogLevel string
-
-const (
-	InfoLevel  LogLevel = "INFO"
-	WarnLevel  LogLevel = "WARN"
-	ErrorLevel LogLevel = "ERROR"
-	DebugLevel LogLevel = "DEBUG"
-)
-
-// NewLogger creates a new Logger instance, falling back to noop logger on error
+// NewLogger creates a new Logger
 func NewLogger(
-	opts *LoggerOptions,
+	name string,
+	endpoint string,
+	token string,
+	passthrough bool,
+	insecure bool,
 ) *Logger {
-	provider, otelLogger, err := getOtelLogger(opts)
-	if err != nil {
-		panic(err)
+	var formattedEndpoint string
+	if insecure {
+		formattedEndpoint = fmt.Sprintf("http://%s/api/message", endpoint)
+	} else {
+		formattedEndpoint = fmt.Sprintf("https://%s/api/message", endpoint)
 	}
 
-	return &Logger{
-		provider:    provider,
-		otelLogger:  otelLogger,
-		attributes:  opts.attributes,
-		passthrough: opts.passthrough,
-		noop:        opts.noop,
+	logger := &Logger{
+		endpoint:    formattedEndpoint,
+		token:       token,
+		passthrough: passthrough,
+		insecure:    insecure,
+		logsQueue:   make(chan *logMessage, 1000),
+		batchStop:   make(chan struct{}),
+		wg:          sync.WaitGroup{},
 	}
+
+	logger.startBatcher()
+	return logger
 }
 
 // Debug logs a message at DEBUG level
-func (l *Logger) Debug(ctx context.Context, message string, attrs ...Attribute) {
-	if !l.noop {
-		callerAttrs := getCallerAttrs()
-		allAttrs := append(l.attributes, callerAttrs...)
-		allAttrs = append(allAttrs, attrs...)
-		l.log(ctx, DebugLevel, message, nil, allAttrs...)
-	}
-	if l.passthrough {
-		fmt.Println(message, attrs)
-	}
+func (l *Logger) Debug(message string, attrs ...Attribute) {
+	l.log(LEVEL_DEBUG, message, nil, attrs...)
 }
 
 // Warn logs a message at WARN level
-func (l *Logger) Warn(ctx context.Context, message string, attrs ...Attribute) {
-	if !l.noop {
-		callerAttrs := getCallerAttrs()
-		allAttrs := append(l.attributes, callerAttrs...)
-		allAttrs = append(allAttrs, attrs...)
-		l.log(ctx, WarnLevel, message, nil, allAttrs...)
-	}
-	if l.passthrough {
-		fmt.Println(message, attrs)
-	}
+func (l *Logger) Warn(message string, attrs ...Attribute) {
+	l.log(LEVEL_WARN, message, nil, attrs...)
 }
 
 // Info logs a message at INFO level
-func (l *Logger) Info(ctx context.Context, message string, attrs ...Attribute) {
-	if !l.noop {
-		callerAttrs := getCallerAttrs()
-		allAttrs := append(l.attributes, callerAttrs...)
-		allAttrs = append(allAttrs, attrs...)
-		l.log(ctx, InfoLevel, message, nil, allAttrs...)
-	}
-	if l.passthrough {
-		fmt.Println(message, attrs)
-	}
+func (l *Logger) Info(message string, attrs ...Attribute) {
+	l.log(LEVEL_INFO, message, nil, attrs...)
 }
 
 // Error logs a message at ERROR level
-func (l *Logger) Error(ctx context.Context, message string, err error, attrs ...Attribute) {
-	if !l.noop {
-		callerAttrs := getCallerAttrs()
-		allAttrs := append(l.attributes, callerAttrs...)
-		allAttrs = append(allAttrs, attrs...)
-		l.log(ctx, ErrorLevel, message, err, allAttrs...)
-	}
-	if l.passthrough {
-		fmt.Println(message, err, attrs)
-	}
+func (l *Logger) Error(message string, err error, attrs ...Attribute) {
+	l.log(LEVEL_ERROR, message, err, attrs...)
 }
 
-// Shutdown shuts down the logger
-func (l *Logger) Shutdown(ctx context.Context) error {
-	return l.provider.Shutdown(ctx)
+// Shutdown shuts down the logger: flushes any remaining logs and stops the batcher goroutine
+func (l *Logger) Shutdown() error {
+	l.stopBatcher()
+
+	done := make(chan struct{})
+	go func() {
+		l.wg.Wait()
+		close(done)
+	}()
+
+	<-done
+	return nil
 }
 
-// log handles the actual logging
-func (l *Logger) log(
-	ctx context.Context,
-	level LogLevel,
-	message string,
-	err error,
-	attrs ...Attribute,
-) {
-	record := log.Record{}
-	record.SetSeverity(getSeverity(level))
-	record.SetBody(log.StringValue(message))
-	record.SetTimestamp(time.Now())
-
-	allAttrs := append(l.attributes, attrs...)
-	logAttrs := []log.KeyValue{}
-	for _, attr := range allAttrs {
-		if attr.Key == "" {
-			continue
-		}
-		logAttrs = append(logAttrs, attr.toLogKV())
+// log queues a log message to be sent to the Vigilant platform
+func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribute) {
+	attrsMap := make(map[string]string)
+	for _, attr := range attrs {
+		attrsMap[attr.Key] = attr.Value
 	}
-
-	record.AddAttributes(logAttrs...)
 
 	if err != nil {
-		record.AddAttributes(log.String("error", err.Error()))
+		attrsMap["error"] = err.Error()
 	}
 
-	l.otelLogger.Emit(ctx, record)
-}
+	attrsMap["service.name"] = l.name
 
-// getSeverity converts our LogLevel to OTEL severity
-func getSeverity(level LogLevel) log.Severity {
-	switch level {
-	case InfoLevel:
-		return log.SeverityInfo
-	case WarnLevel:
-		return log.SeverityWarn
-	case ErrorLevel:
-		return log.SeverityError
-	case DebugLevel:
-		return log.SeverityDebug
+	select {
+	case l.logsQueue <- &logMessage{
+		Timestamp:  time.Now(),
+		Body:       message,
+		Level:      level,
+		Attributes: attrsMap,
+	}:
 	default:
-		return log.SeverityInfo
 	}
 }
 
-// newOtelLogger creates a new OpenTelemetry logger with OTLP export
-func newOtelLogger(
-	url string,
-	token string,
-	name string,
-	insecure bool,
-) (*sdklog.LoggerProvider, log.Logger, error) {
-	opts := []otlploggrpc.Option{
-		otlploggrpc.WithEndpoint(url),
-		otlploggrpc.WithHeaders(map[string]string{
-			"x-vigilant-token": token,
-		}),
+// startBatcher starts the batcher goroutine
+func (l *Logger) startBatcher() {
+	l.wg.Add(1)
+	go l.runBatcher()
+}
+
+// runBatcher is the batcher goroutine
+func (l *Logger) runBatcher() {
+	defer l.wg.Done()
+
+	const maxBatchSize = 100
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	var batch []*logMessage
+
+	for {
+		select {
+		case <-l.batchStop:
+			if len(batch) > 0 {
+				l.sendBatch(batch)
+			}
+			return
+
+		case msg := <-l.logsQueue:
+			if msg == nil {
+				continue
+			}
+
+			batch = append(batch, msg)
+			if len(batch) >= maxBatchSize {
+				l.sendBatch(batch)
+				batch = nil
+			}
+
+		case <-ticker.C:
+			if len(batch) > 0 {
+				l.sendBatch(batch)
+				batch = nil
+			}
+		}
 	}
-	if insecure {
-		opts = append(opts, otlploggrpc.WithInsecure())
+}
+
+// stopBatcher closes the batchStop channel
+func (l *Logger) stopBatcher() {
+	close(l.batchStop)
+}
+
+// sendBatch sends a batch of logs to the Vigilant platform
+func (l *Logger) sendBatch(logs []*logMessage) {
+	if len(logs) == 0 {
+		return
 	}
 
-	exporter, err := otlploggrpc.New(
-		context.Background(),
-		opts...,
-	)
+	batch := &messageBatch{
+		Token: l.token,
+		Type:  messageTypeLog,
+		Logs:  logs,
+	}
+
+	batchBytes, err := json.Marshal(batch)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create exporter: %w", err)
+		return
 	}
 
-	attrs := []attribute.KeyValue{}
-	if name != "" {
-		attrs = append(attrs, semconv.ServiceName(name))
-	}
-
-	resource := resource.NewWithAttributes(
-		semconv.SchemaURL,
-		attrs...,
-	)
-
-	provider := sdklog.NewLoggerProvider(
-		sdklog.WithResource(resource),
-		sdklog.WithProcessor(
-			sdklog.NewBatchProcessor(exporter),
-		),
-	)
-
-	return provider, provider.Logger(name), nil
-}
-
-// getOtelLogger creates a new OpenTelemetry logger with OTLP export
-func getOtelLogger(
-	opts *LoggerOptions,
-) (*sdklog.LoggerProvider, log.Logger, error) {
-	if opts.otelLogger != nil {
-		return nil, opts.otelLogger, nil
-	}
-
-	var name string = "example"
-	if opts.name != "" {
-		name = opts.name
-	}
-
-	var url string = "otel.vigilant.run:4317"
-	if opts.url != "" {
-		url = opts.url
-	}
-
-	var token string = "tk_1234567890"
-	if opts.token != "" {
-		token = opts.token
-	}
-
-	var insecure bool = false
-	if opts.insecure {
-		insecure = opts.insecure
-	}
-
-	provider, logger, err := newOtelLogger(url, token, name, insecure)
+	req, err := http.NewRequest("POST", l.endpoint, bytes.NewBuffer(batchBytes))
 	if err != nil {
-		return nil, nil, err
+		return
 	}
 
-	return provider, logger, nil
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+l.token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
 }
 
-// getCallerAttrs returns the caller attributes
-func getCallerAttrs() []Attribute {
-	file, line, fn := getCallerInfo()
-	return []Attribute{
-		NewAttribute("caller.file", file),
-		NewAttribute("caller.line", line),
-		NewAttribute("caller.function", fn),
-	}
+// logLevel represents the severity of the log message
+type logLevel string
+
+const (
+	LEVEL_INFO  logLevel = "INFO"
+	LEVEL_WARN  logLevel = "WARNING"
+	LEVEL_ERROR logLevel = "ERROR"
+	LEVEL_DEBUG logLevel = "DEBUG"
+)
+
+// messageType represents the type of the message
+type messageType string
+
+const (
+	messageTypeLog messageType = "logs"
+)
+
+// messageBatch represents a batch of logs
+type messageBatch struct {
+	Token string        `json:"token"`
+	Type  messageType   `json:"type"`
+	Logs  []*logMessage `json:"logs,omitempty"`
 }
 
-// getCallerInfo returns the caller information
-func getCallerInfo() (string, int, string) {
-	pc, file, line, ok := runtime.Caller(3)
-	if !ok {
-		return "", 0, ""
-	}
-
-	fn := runtime.FuncForPC(pc)
-	if fn == nil {
-		return file, line, ""
-	}
-
-	name := fn.Name()
-	if idx := strings.LastIndex(name, "."); idx >= 0 {
-		name = name[idx+1:]
-	}
-
-	return file, line, name
+// logMessage represents a log message
+type logMessage struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Body       string            `json:"body"`
+	Level      logLevel          `json:"level"`
+	Attributes map[string]string `json:"attributes"`
 }

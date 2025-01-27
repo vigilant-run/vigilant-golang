@@ -1,6 +1,6 @@
 # Vigilant Go SDK
 
-This is the Go SDK for the Vigilant platform. The logger is a wrapper around the [OpenTelemetry](https://opentelemetry.io/) SDK. 
+This is the Go SDK for the Vigilant platform.
 ## Installation
 
 ```bash
@@ -13,27 +13,23 @@ go get github.com/vigilant-run/vigilant-golang
 package main
 
 import (
-    "context"
+  "context"
 
-    "github.com/vigilant-run/vigilant-golang"
+  "github.com/vigilant-run/vigilant-golang"
 )
 
 func main() {
-    // Create the logger options
-    loggerOptions := vigilant.NewLoggerOptions(
-        vigilant.WithLoggerURL("log.vigilant.run:4317"),
-        vigilant.WithLoggerToken("tk_1234567890"),
-        vigilant.WithLoggerName("sample-app"),
-        vigilant.WithLoggerPassthrough(),
-    )
+  // Create the logger
+  logger := vigilant.NewLoggerBuilder().
+    WithName("sample-app").
+    WithEndpoint("ingress.vigilant.run").
+    WithToken("tk_1234567890").
+    Build()
 
-    // Create the logger
-    logger := vigilant.NewLogger(loggerOptions)
+  // Log a message
+  logger.Info("Hello, World!")
 
-    // Log a message
-    logger.Info(context.Background(), "Hello, World!")
-
-    // Shutdown the logger
-    logger.Shutdown(context.Background())
+  // Shutdown the logger
+  logger.Shutdown()
 }
 ```
