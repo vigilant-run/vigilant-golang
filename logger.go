@@ -16,6 +16,7 @@ type LoggerBuilder struct {
 	token       string
 	passthrough bool
 	insecure    bool
+	noop        bool
 }
 
 // NewLoggerBuilder creates a new LoggerBuilder
@@ -59,9 +60,15 @@ func (o *LoggerBuilder) WithInsecure() *LoggerBuilder {
 	return o
 }
 
+// WithNoop disables the logger
+func (o *LoggerBuilder) WithNoop() *LoggerBuilder {
+	o.noop = true
+	return o
+}
+
 // Build builds the logger
 func (o *LoggerBuilder) Build() *Logger {
-	return NewLogger(o.name, o.endpoint, o.token, o.passthrough, o.insecure)
+	return NewLogger(o.name, o.endpoint, o.token, o.passthrough, o.insecure, o.noop)
 }
 
 // Logger is the logger for the Vigilant platform
@@ -71,6 +78,7 @@ type Logger struct {
 	token       string
 	passthrough bool
 	insecure    bool
+	noop        bool
 
 	logsQueue chan *logMessage
 	batchStop chan struct{}
@@ -84,6 +92,7 @@ func NewLogger(
 	token string,
 	passthrough bool,
 	insecure bool,
+	noop bool,
 ) *Logger {
 	var formattedEndpoint string
 	if insecure {
@@ -142,6 +151,10 @@ func (l *Logger) Shutdown() error {
 
 // log queues a log message to be sent to the Vigilant platform
 func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribute) {
+	if l.noop {
+		return
+	}
+
 	attrsMap := make(map[string]string)
 	for _, attr := range attrs {
 		attrsMap[attr.Key] = attr.Value
