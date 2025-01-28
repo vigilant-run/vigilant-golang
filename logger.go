@@ -27,6 +27,7 @@ func NewLoggerBuilder() *LoggerBuilder {
 		token:       "tk_1234567890",
 		passthrough: true,
 		insecure:    false,
+		noop:        false,
 	}
 }
 
@@ -102,10 +103,12 @@ func NewLogger(
 	}
 
 	logger := &Logger{
+		name:        name,
 		endpoint:    formattedEndpoint,
 		token:       token,
 		passthrough: passthrough,
 		insecure:    insecure,
+		noop:        noop,
 		logsQueue:   make(chan *logMessage, 1000),
 		batchStop:   make(chan struct{}),
 		wg:          sync.WaitGroup{},
@@ -175,6 +178,8 @@ func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribu
 	}:
 	default:
 	}
+
+	l.logPassthrough(level, message, attrs...)
 }
 
 // startBatcher starts the batcher goroutine
@@ -256,6 +261,19 @@ func (l *Logger) sendBatch(logs []*logMessage) {
 		return
 	}
 	defer resp.Body.Close()
+}
+
+// logPassthrough logs a message to the console
+func (l *Logger) logPassthrough(level logLevel, message string, attrs ...Attribute) {
+	if !l.passthrough {
+		return
+	}
+
+	attrsMap := make(map[string]string)
+	for _, attr := range attrs {
+		attrsMap[attr.Key] = attr.Value
+	}
+	fmt.Printf("[%s] %s %s\n", level, message, attrsMap)
 }
 
 // logLevel represents the severity of the log message
