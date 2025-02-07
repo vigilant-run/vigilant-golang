@@ -138,7 +138,7 @@ func (l *Logger) Error(message string, err error, attrs ...Attribute) {
 	l.log(LEVEL_ERROR, message, err, attrs...)
 }
 
-// Shutdown shuts down the logger: flushes any remaining logs and stops the batcher goroutine
+// Shutdown shuts down the logger
 func (l *Logger) Shutdown() error {
 	l.stopBatcher()
 
@@ -152,7 +152,7 @@ func (l *Logger) Shutdown() error {
 	return nil
 }
 
-// log queues a log message to be sent to the Vigilant platform
+// log queues a log message to be sent to Vigilant
 func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribute) {
 	if l.noop {
 		return
@@ -231,7 +231,7 @@ func (l *Logger) stopBatcher() {
 	close(l.batchStop)
 }
 
-// sendBatch sends a batch of logs to the Vigilant platform
+// sendBatch sends a batch of logs
 func (l *Logger) sendBatch(logs []*logMessage) {
 	if len(logs) == 0 {
 		return
@@ -274,36 +274,4 @@ func (l *Logger) logPassthrough(level logLevel, message string, attrs ...Attribu
 		attrsMap[attr.Key] = attr.Value
 	}
 	fmt.Printf("[%s] %s %s\n", level, message, attrsMap)
-}
-
-// logLevel represents the severity of the log message
-type logLevel string
-
-const (
-	LEVEL_INFO  logLevel = "INFO"
-	LEVEL_WARN  logLevel = "WARNING"
-	LEVEL_ERROR logLevel = "ERROR"
-	LEVEL_DEBUG logLevel = "DEBUG"
-)
-
-// messageType represents the type of the message
-type messageType string
-
-const (
-	messageTypeLog messageType = "logs"
-)
-
-// messageBatch represents a batch of logs
-type messageBatch struct {
-	Token string        `json:"token"`
-	Type  messageType   `json:"type"`
-	Logs  []*logMessage `json:"logs,omitempty"`
-}
-
-// logMessage represents a log message
-type logMessage struct {
-	Timestamp  time.Time         `json:"timestamp"`
-	Body       string            `json:"body"`
-	Level      logLevel          `json:"level"`
-	Attributes map[string]string `json:"attributes"`
 }

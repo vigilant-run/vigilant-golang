@@ -1,6 +1,7 @@
 # Vigilant Go SDK
 
 This is the Go SDK for the Vigilant platform.
+
 ## Installation
 
 ```bash

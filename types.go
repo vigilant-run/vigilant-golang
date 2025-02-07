@@ -1,5 +1,7 @@
 package vigilant
 
+import "time"
+
 // Attribute is a map of metadata to be sent with the error
 type Attribute struct {
 	Key   string `json:"key"`
@@ -9,4 +11,60 @@ type Attribute struct {
 // NewAttribute creates a new Attribute
 func NewAttribute(key, value string) Attribute {
 	return Attribute{Key: key, Value: value}
+}
+
+// logLevel represents the severity of the log message
+type logLevel string
+
+const (
+	LEVEL_INFO  logLevel = "INFO"
+	LEVEL_WARN  logLevel = "WARNING"
+	LEVEL_ERROR logLevel = "ERROR"
+	LEVEL_DEBUG logLevel = "DEBUG"
+)
+
+// messageType represents the type of the message
+type messageType string
+
+const (
+	messageTypeLog   messageType = "logs"
+	messageTypeError messageType = "errors"
+)
+
+// messageBatch represents a batch of logs
+type messageBatch struct {
+	Token  string          `json:"token"`
+	Type   messageType     `json:"type"`
+	Logs   []*logMessage   `json:"logs,omitempty"`
+	Errors []*errorMessage `json:"errors,omitempty"`
+}
+
+// logMessage represents a log message
+type logMessage struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Body       string            `json:"body"`
+	Level      logLevel          `json:"level"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// errorMessage represents an error message
+type errorMessage struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Details    errorDetails      `json:"details"`
+	Location   errorLocation     `json:"location"`
+	Attributes map[string]string `json:"attributes"`
+}
+
+// errorLocation represents a location of an error
+type errorLocation struct {
+	Function string `json:"function"`
+	File     string `json:"file"`
+	Line     int    `json:"line"`
+}
+
+// errorDetails represents an error
+type errorDetails struct {
+	Type       string `json:"type"`
+	Message    string `json:"message"`
+	Stacktrace string `json:"stacktrace"`
 }
