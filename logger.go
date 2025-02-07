@@ -155,6 +155,7 @@ func (l *Logger) Shutdown() error {
 // log queues a log message to be sent to Vigilant
 func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribute) {
 	if l.noop {
+		l.logPassthrough(level, message, attrs...)
 		return
 	}
 
