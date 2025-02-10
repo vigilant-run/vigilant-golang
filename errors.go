@@ -296,11 +296,35 @@ func getLocation(skip int) errorLocation {
 		}
 	}
 
+	fullName := fn.Name()
+	if lastDot := lastIndexDot(fullName); lastDot >= 0 {
+		fullName = fullName[lastDot+1:]
+	}
+
 	return errorLocation{
-		Function: fn.Name(),
+		Function: fullName,
 		File:     file,
 		Line:     line,
 	}
+}
+
+// lastIndexDot returns the index of the last dot in a function name
+// skipping dots inside parentheses (for method names)
+func lastIndexDot(name string) int {
+	parenDepth := 0
+	for i := len(name) - 1; i >= 0; i-- {
+		switch name[i] {
+		case ')':
+			parenDepth++
+		case '(':
+			parenDepth--
+		case '.':
+			if parenDepth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 // buildStackTrace is a helper to gather the complete stack from the caller
