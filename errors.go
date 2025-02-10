@@ -74,7 +74,7 @@ func (b *ErrorHandlerConfigBuilder) WithNoop() *ErrorHandlerConfigBuilder {
 
 // Build builds the error handler configuration
 func (b *ErrorHandlerConfigBuilder) Build() *ErrorHandlerConfig {
-	return &ErrorHandlerConfig{
+	config := &ErrorHandlerConfig{
 		Name:        b.Name,
 		Endpoint:    b.Endpoint,
 		Token:       b.Token,
@@ -82,6 +82,20 @@ func (b *ErrorHandlerConfigBuilder) Build() *ErrorHandlerConfig {
 		Insecure:    b.Insecure,
 		Noop:        b.Noop,
 	}
+
+	if b.Name == "" {
+		config.Name = "service-name"
+	}
+
+	if b.Endpoint == "" {
+		config.Endpoint = "ingress.vigilant.run"
+	}
+
+	if b.Token == "" {
+		config.Token = "tk_1234567890"
+	}
+
+	return config
 }
 
 // InitErrorHandler initializes the error handler
