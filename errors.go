@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
@@ -296,9 +297,9 @@ func getLocation(skip int) errorLocation {
 		}
 	}
 
-	fullName := fn.Name()
-	if lastDot := lastIndexDot(fullName); lastDot >= 0 {
-		fullName = fullName[lastDot+1:]
+	fullName := getFunctionName(fn)
+	if fullName == "" {
+		fullName = "unknown"
 	}
 
 	return errorLocation{
@@ -308,23 +309,22 @@ func getLocation(skip int) errorLocation {
 	}
 }
 
-// lastIndexDot returns the index of the last dot in a function name
-// skipping dots inside parentheses (for method names)
-func lastIndexDot(name string) int {
-	parenDepth := 0
-	for i := len(name) - 1; i >= 0; i-- {
-		switch name[i] {
-		case ')':
-			parenDepth++
-		case '(':
-			parenDepth--
-		case '.':
-			if parenDepth == 0 {
-				return i
-			}
-		}
+// getFunctionName returns the function name from a function
+func getFunctionName(fn *runtime.Func) string {
+	if fn == nil {
+		return ""
 	}
-	return -1
+
+	fullName := fn.Name()
+	if idx := strings.LastIndex(fullName, "/"); idx >= 0 {
+		fullName = fullName[idx+1:]
+	}
+
+	if idx := strings.Index(fullName, "."); idx >= 0 {
+		fullName = fullName[idx+1:]
+	}
+
+	return fullName
 }
 
 // buildStackTrace is a helper to gather the complete stack from the caller
