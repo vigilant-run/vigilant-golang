@@ -269,7 +269,7 @@ func (e *errorHandler) sendBatch(errors []*errorMessage) {
 
 // getDetails returns the details of an error
 func getDetails(err error) errorDetails {
-	stacktrace := buildStackTrace(5)
+	stacktrace := buildStackTrace(5, err)
 	return errorDetails{
 		Type:       fmt.Sprintf("%T", err),
 		Message:    err.Error(),
@@ -328,13 +328,15 @@ func getFunctionName(fn *runtime.Func) string {
 }
 
 // buildStackTrace is a helper to gather the complete stack from the caller
-func buildStackTrace(skip int) string {
-	pcs := make([]uintptr, 32)
-	n := runtime.Callers(skip, pcs)
-	pcs = pcs[:n]
+func buildStackTrace(skip int, err error) string {
+	pc := make([]uintptr, 32)
+	n := runtime.Callers(skip, pc)
+	pc = pc[:n]
 
-	frames := runtime.CallersFrames(pcs)
+	frames := runtime.CallersFrames(pc)
 	var sb bytes.Buffer
+
+	sb.WriteString(fmt.Sprintf("%T: %s\n", err, err.Error()))
 
 	for {
 		frame, more := frames.Next()
