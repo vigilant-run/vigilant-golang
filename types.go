@@ -27,16 +27,18 @@ const (
 type messageType string
 
 const (
-	messageTypeLog   messageType = "logs"
-	messageTypeError messageType = "errors"
+	messageTypeLog    messageType = "logs"
+	messageTypeError  messageType = "errors"
+	messageTypeMetric messageType = "metrics"
 )
 
 // messageBatch represents a batch of logs
 type messageBatch struct {
-	Token  string          `json:"token"`
-	Type   messageType     `json:"type"`
-	Logs   []*logMessage   `json:"logs,omitempty"`
-	Errors []*errorMessage `json:"errors,omitempty"`
+	Token   string           `json:"token"`
+	Type    messageType      `json:"type"`
+	Logs    []*logMessage    `json:"logs,omitempty"`
+	Errors  []*errorMessage  `json:"errors,omitempty"`
+	Metrics []*metricMessage `json:"metrics,omitempty"`
 }
 
 // logMessage represents a log message
@@ -67,4 +69,12 @@ type errorDetails struct {
 	Type       string `json:"type"`
 	Message    string `json:"message"`
 	Stacktrace string `json:"stacktrace"`
+}
+
+// metricMessage represents a metric message
+type metricMessage struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Name       string            `json:"name"`
+	Value      float64           `json:"value"`
+	Attributes map[string]string `json:"attributes"`
 }
