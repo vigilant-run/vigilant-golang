@@ -154,11 +154,6 @@ func (l *Logger) Shutdown() error {
 
 // log queues a log message to be sent to Vigilant
 func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribute) {
-	if l.noop {
-		l.logPassthrough(level, message, attrs...)
-		return
-	}
-
 	attrsMap := make(map[string]string)
 	for _, attr := range attrs {
 		attrsMap[attr.Key] = attr.Value
@@ -170,6 +165,11 @@ func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribu
 
 	attrsMap["service.name"] = l.name
 
+	l.logPassthrough(level, message, attrs...)
+	if l.noop {
+		return
+	}
+
 	select {
 	case l.logsQueue <- &logMessage{
 		Timestamp:  time.Now(),
@@ -179,8 +179,6 @@ func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribu
 	}:
 	default:
 	}
-
-	l.logPassthrough(level, message, attrs...)
 }
 
 // startBatcher starts the batcher goroutine
@@ -270,9 +268,17 @@ func (l *Logger) logPassthrough(level logLevel, message string, attrs ...Attribu
 		return
 	}
 
-	attrsMap := make(map[string]string)
-	for _, attr := range attrs {
-		attrsMap[attr.Key] = attr.Value
+	fmt.Printf("[%s] %s %s\n", level, message, formatAttributes(attrs))
+}
+
+// formatAttributes formats the attributes
+func formatAttributes(attrs []Attribute) string {
+	attrsStr := ""
+	for i, attr := range attrs {
+		if i > 0 {
+			attrsStr += ", "
+		}
+		attrsStr += fmt.Sprintf("%s: %s", attr.Key, attr.Value)
 	}
-	fmt.Printf("[%s] %s %s\n", level, message, attrsMap)
+	return attrsStr
 }
