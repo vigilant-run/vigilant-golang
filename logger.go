@@ -165,7 +165,7 @@ func (l *Logger) log(level logLevel, message string, err error, attrs ...Attribu
 
 	attrsMap["service.name"] = l.name
 
-	l.logPassthrough(level, message, attrs...)
+	l.logPassthrough(level, message, attrsMap)
 	if l.noop {
 		return
 	}
@@ -263,7 +263,7 @@ func (l *Logger) sendBatch(logs []*logMessage) {
 }
 
 // logPassthrough logs a message to the console
-func (l *Logger) logPassthrough(level logLevel, message string, attrs ...Attribute) {
+func (l *Logger) logPassthrough(level logLevel, message string, attrs map[string]string) {
 	if !l.passthrough {
 		return
 	}
@@ -272,13 +272,15 @@ func (l *Logger) logPassthrough(level logLevel, message string, attrs ...Attribu
 }
 
 // formatAttributes formats the attributes
-func formatAttributes(attrs []Attribute) string {
+func formatAttributes(attrs map[string]string) string {
 	attrsStr := ""
-	for i, attr := range attrs {
+	i := 0
+	for k, v := range attrs {
 		if i > 0 {
 			attrsStr += ", "
 		}
-		attrsStr += fmt.Sprintf("%s: %s", attr.Key, attr.Value)
+		attrsStr += fmt.Sprintf("%s: %s", k, v)
+		i++
 	}
-	return attrsStr
+	return fmt.Sprintf("{%s}", attrsStr)
 }
