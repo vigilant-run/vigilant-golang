@@ -14,23 +14,23 @@ go get github.com/vigilant-run/vigilant-golang
 package main
 
 import (
-  "context"
-
   "github.com/vigilant-run/vigilant-golang"
 )
 
 func main() {
   // Create the logger
-  logger := vigilant.NewLoggerBuilder().
+  config := vigilant.NewLoggerConfigBuilder().
     WithName("sample-app").
-    WithEndpoint("ingress.vigilant.run").
     WithToken("tk_1234567890").
     Build()
 
+  // Initialize the logger
+  vigilant.InitLogger(config)
+
   // Log a message
-  logger.Info("Hello, World!")
+  vigilant.LogInfo("Hello, World!")
 
   // Shutdown the logger
-  logger.Shutdown()
+  vigilant.ShutdownLogger()
 }
 ```
