@@ -2,283 +2,138 @@ package vigilant
 
 import (
 	"bytes"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
 	"runtime"
 	"strings"
-	"sync"
-	"time"
 )
 
-// ErrorHandlerConfig is the configuration for the error handler
-type ErrorHandlerConfig struct {
-	Name        string
-	Endpoint    string
-	Token       string
-	Passthrough bool
-	Insecure    bool
-	Noop        bool
-}
+// Error capture functions are used to capture errors, they are viewable in the Vigilant Dashboard.
+// The Vigilant agent collects a bunch of metadata about the error, such as the stack trace, function name, file name, and line number.
+// This data is used to provide more context about the error in the Vigilant Dashboard.
 
-// ErrorHandlerConfigBuilder is the builder for the error handler configuration
-type ErrorHandlerConfigBuilder struct {
-	Name        string
-	Endpoint    string
-	Token       string
-	Passthrough bool
-	Insecure    bool
-	Noop        bool
-}
+// ----------------------- //
+// --- General Errors --- //
+// ----------------------- //
 
-// NewErrorHandlerConfigBuilder creates a new error handler configuration builder
-func NewErrorHandlerConfigBuilder() *ErrorHandlerConfigBuilder {
-	return &ErrorHandlerConfigBuilder{}
-}
-
-// WithName sets the name of the error handler
-func (b *ErrorHandlerConfigBuilder) WithName(name string) *ErrorHandlerConfigBuilder {
-	b.Name = name
-	return b
-}
-
-// WithEndpoint sets the endpoint of the error handler
-func (b *ErrorHandlerConfigBuilder) WithEndpoint(endpoint string) *ErrorHandlerConfigBuilder {
-	b.Endpoint = endpoint
-	return b
-}
-
-// WithToken sets the token of the error handler
-func (b *ErrorHandlerConfigBuilder) WithToken(token string) *ErrorHandlerConfigBuilder {
-	b.Token = token
-	return b
-}
-
-// WithPassthrough sets the passthrough of the error handler
-func (b *ErrorHandlerConfigBuilder) WithPassthrough() *ErrorHandlerConfigBuilder {
-	b.Passthrough = true
-	return b
-}
-
-// WithInsecure sets the insecure of the error handler
-func (b *ErrorHandlerConfigBuilder) WithInsecure() *ErrorHandlerConfigBuilder {
-	b.Insecure = true
-	return b
-}
-
-// WithNoop sets the noop of the error handler
-func (b *ErrorHandlerConfigBuilder) WithNoop() *ErrorHandlerConfigBuilder {
-	b.Noop = true
-	return b
-}
-
-// Build builds the error handler configuration
-func (b *ErrorHandlerConfigBuilder) Build() *ErrorHandlerConfig {
-	config := &ErrorHandlerConfig{
-		Name:        b.Name,
-		Endpoint:    b.Endpoint,
-		Token:       b.Token,
-		Passthrough: b.Passthrough,
-		Insecure:    b.Insecure,
-		Noop:        b.Noop,
-	}
-
-	if b.Name == "" {
-		config.Name = "service-name"
-	}
-
-	if b.Endpoint == "" {
-		config.Endpoint = "ingress.vigilant.run"
-	}
-
-	if b.Token == "" {
-		config.Token = "tk_1234567890"
-	}
-
-	return config
-}
-
-// InitErrorHandler initializes the error handler
-func InitErrorHandler(config *ErrorHandlerConfig) {
-	globalErrorHandler = newErrorHandler(config.Name, config.Endpoint, config.Token, config.Passthrough, config.Insecure, config.Noop)
-}
-
-// ShutdownErrorHandler shuts down the error handler
-func ShutdownErrorHandler() error {
-	return globalErrorHandler.shutdown()
-}
-
-// CaptureError captures an error
-func CaptureError(err error, attrs ...Attribute) {
-	if globalErrorHandler == nil {
-		return
-	}
-	globalErrorHandler.capture(err, attrs...)
-}
-
-var globalErrorHandler *errorHandler
-
-// errorHandler is a handler for errors
-type errorHandler struct {
-	name        string
-	endpoint    string
-	token       string
-	passthrough bool
-	insecure    bool
-	noop        bool
-
-	errorsQueue chan *errorMessage
-	batchStop   chan struct{}
-	wg          sync.WaitGroup
-}
-
-// newErrorHandler creates a new errorHandler
-func newErrorHandler(
-	name string,
-	endpoint string,
-	token string,
-	passthrough bool,
-	insecure bool,
-	noop bool,
-) *errorHandler {
-	var formattedEndpoint string
-	if insecure {
-		formattedEndpoint = fmt.Sprintf("http://%s/api/message", endpoint)
-	} else {
-		formattedEndpoint = fmt.Sprintf("https://%s/api/message", endpoint)
-	}
-
-	errorHandler := &errorHandler{
-		name:        name,
-		endpoint:    formattedEndpoint,
-		token:       token,
-		passthrough: passthrough,
-		insecure:    insecure,
-		noop:        noop,
-		errorsQueue: make(chan *errorMessage, 1000),
-		batchStop:   make(chan struct{}),
-	}
-
-	errorHandler.startBatcher()
-	return errorHandler
-}
-
-// capture captures an error and sends it to Vigilant
-func (e *errorHandler) capture(err error, attrs ...Attribute) {
-	if e.noop || err == nil {
+// CaptureError captures an error and sends it to the agent
+// Example:
+// err := db.Query(...)
+// CaptureError(err)
+func CaptureError(err error) {
+	if globalAgent == nil || err == nil {
 		return
 	}
 
-	attrsMap := make(map[string]string)
-	for _, attr := range attrs {
-		attrsMap[attr.Key] = attr.Value
-	}
-	attrsMap["service.name"] = e.name
+	location := getLocation(2)
+	details := getDetails(err)
 
-	select {
-	case e.errorsQueue <- &errorMessage{
-		Timestamp:  time.Now(),
-		Details:    getDetails(err),
-		Location:   getLocation(3),
-		Attributes: attrsMap,
-	}:
-	default:
-	}
+	globalAgent.sendError(err, location, details, nil)
 }
 
-// Shutdown shuts down the error handler
-func (e *errorHandler) shutdown() error {
-	e.stopBatcher()
-
-	done := make(chan struct{})
-	go func() {
-		e.wg.Wait()
-		close(done)
-	}()
-
-	<-done
-	return nil
-}
-
-// startBatcher starts the batcher goroutine
-func (e *errorHandler) startBatcher() {
-	e.wg.Add(1)
-	go e.runBatcher()
-}
-
-// runBatcher is the batcher goroutine
-func (e *errorHandler) runBatcher() {
-	defer e.wg.Done()
-
-	const maxBatchSize = 100
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	var batch []*errorMessage
-
-	for {
-		select {
-		case <-e.batchStop:
-			if len(batch) > 0 {
-				e.sendBatch(batch)
-			}
-			return
-
-		case msg := <-e.errorsQueue:
-			if msg == nil {
-				continue
-			}
-
-			batch = append(batch, msg)
-			if len(batch) >= maxBatchSize {
-				e.sendBatch(batch)
-				batch = nil
-			}
-
-		case <-ticker.C:
-			if len(batch) > 0 {
-				e.sendBatch(batch)
-				batch = nil
-			}
-		}
-	}
-}
-
-// stopBatcher closes the batchStop channel
-func (e *errorHandler) stopBatcher() {
-	close(e.batchStop)
-}
-
-// sendBatch sends a batch of errors
-func (e *errorHandler) sendBatch(errors []*errorMessage) {
-	if len(errors) == 0 {
+// CaptureErrorw captures an error and sends it to the agent with attributes
+// Example:
+// err := db.Query(...)
+// CaptureErrorw(err, "db", "postgres")
+func CaptureErrorw(err error, keyVals ...any) {
+	if globalAgent == nil || err == nil {
 		return
 	}
 
-	batch := &messageBatch{
-		Token:  e.token,
-		Type:   messageTypeError,
-		Errors: errors,
-	}
-
-	batchBytes, err := json.Marshal(batch)
+	attrs, err := keyValsToMap(keyVals...)
 	if err != nil {
+		fmt.Printf("error formatting attributes: %v\n", err)
 		return
 	}
 
-	req, err := http.NewRequest("POST", e.endpoint, bytes.NewBuffer(batchBytes))
+	location := getLocation(2)
+	details := getDetails(err)
+
+	globalAgent.sendError(err, location, details, attrs)
+}
+
+// CaptureErrort captures an error message and sends it to the agent with typed attributes
+// Example:
+// err := db.Query(...)
+// CaptureErrort(err, vigilant.String("db", "postgres"))
+func CaptureErrort(message string, attrs map[string]string) {
+	if globalAgent == nil || message == "" {
+		return
+	}
+
+	location := getLocation(2)
+	details := getDetails(errors.New(message))
+	globalAgent.sendError(errors.New(message), location, details, attrs)
+}
+
+// CaptureMessage captures an error message and sends it to the agent
+// Example:
+// CaptureMessage("failed to write to file")
+func CaptureMessage(message string) {
+	if globalAgent == nil || message == "" {
+		return
+	}
+
+	capturedErr := errors.New(message)
+	location := getLocation(2)
+	details := getDetails(capturedErr)
+
+	globalAgent.sendError(capturedErr, location, details, nil)
+}
+
+// CaptureMessagef captures an error message and sends it to the agent
+// Example:
+// CaptureMessagef("failed to write to file: %s", "file.txt")
+func CaptureMessagef(template string, args ...any) {
+	if globalAgent == nil || template == "" {
+		return
+	}
+
+	capturedErr := fmt.Errorf(template, args...)
+	location := getLocation(2)
+	details := getDetails(capturedErr)
+
+	globalAgent.sendError(capturedErr, location, details, nil)
+}
+
+// CaptureMessagew captures an error message and sends it to the agent with attributes
+// Example:
+// CaptureMessagew("failed to write to file", "file.txt", "db", "postgres")
+func CaptureMessagew(template string, args ...any) {
+	if globalAgent == nil || template == "" {
+		return
+	}
+
+	attrs, err := keyValsToMap(args...)
 	if err != nil {
+		fmt.Printf("error formatting attributes: %v\n", err)
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+e.token)
+	capturedErr := fmt.Errorf(template, args...)
+	location := getLocation(2)
+	details := getDetails(capturedErr)
 
-	resp, err := http.DefaultClient.Do(req)
+	globalAgent.sendError(capturedErr, location, details, attrs)
+}
+
+// CaptureMessaget captures an error message and sends it to the agent with attributes
+// Example:
+// -- CaptureMessaget("failed to write to file", vigilant.String("db", "postgres"))
+func CaptureMessaget(message string, fields ...Field) {
+	if globalAgent == nil || message == "" {
+		return
+	}
+	attrs, err := fieldsToMap(fields...)
 	if err != nil {
+		fmt.Printf("error formatting fields: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	capturedErr := errors.New(message)
+	location := getLocation(2)
+	details := getDetails(capturedErr)
+
+	globalAgent.sendError(capturedErr, location, details, attrs)
 }
 
 // getDetails returns the details of an error
@@ -359,11 +214,25 @@ func buildStackTrace(skip int, err error) string {
 			funcName = "unknown"
 		}
 
-		sb.WriteString(fmt.Sprintf("  File \"%s\", line %d, in %s\n", frame.File, frame.Line, funcName))
+		sb.WriteString(fmt.Sprintf("\tFile \"%s\", line %d, in %s\n", frame.File, frame.Line, funcName))
 		if !more {
 			break
 		}
 	}
 
 	return sb.String()
+}
+
+// writeErrorPassthrough writes an error message to the agent
+// this is an internal function that is used to write error messages to stdout
+func writeErrorPassthrough(err error, attrs map[string]string) {
+	if err == nil {
+		return
+	}
+	if len(attrs) > 0 {
+		formattedAttrs := prettyPrintAttributes(attrs)
+		fmt.Printf("[ERROR] %s %s\n", err.Error(), formattedAttrs)
+	} else {
+		fmt.Printf("[ERROR] %s\n", err.Error())
+	}
 }

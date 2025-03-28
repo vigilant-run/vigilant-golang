@@ -13,14 +13,15 @@ func NewAttribute(key, value string) Attribute {
 	return Attribute{Key: key, Value: value}
 }
 
-// logLevel represents the severity of the log message
-type logLevel string
+// LogLevel represents the severity of the log message
+type LogLevel string
 
 const (
-	LEVEL_INFO  logLevel = "INFO"
-	LEVEL_WARN  logLevel = "WARNING"
-	LEVEL_ERROR logLevel = "ERROR"
-	LEVEL_DEBUG logLevel = "DEBUG"
+	LEVEL_INFO  LogLevel = "INFO"
+	LEVEL_WARN  LogLevel = "WARNING"
+	LEVEL_ERROR LogLevel = "ERROR"
+	LEVEL_DEBUG LogLevel = "DEBUG"
+	LEVEL_TRACE LogLevel = "TRACE"
 )
 
 // messageType represents the type of the message
@@ -45,7 +46,7 @@ type messageBatch struct {
 type logMessage struct {
 	Timestamp  time.Time         `json:"timestamp"`
 	Body       string            `json:"body"`
-	Level      logLevel          `json:"level"`
+	Level      LogLevel          `json:"level"`
 	Attributes map[string]string `json:"attributes"`
 }
 
