@@ -1,6 +1,6 @@
-# Vigilant Go SDK
+# Vigilant Go Agent
 
-This is the Go SDK for the Vigilant platform.
+This is the Go Agent for the Vigilant platform.
 
 ## Installation
 
@@ -8,7 +8,7 @@ This is the Go SDK for the Vigilant platform.
 go get github.com/vigilant-run/vigilant-golang
 ```
 
-## Usage (Logger)
+## Usage
 
 ```go
 package main
@@ -18,19 +18,26 @@ import (
 )
 
 func main() {
-  // Create the logger
-  config := vigilant.NewLoggerConfigBuilder().
-    WithName("sample-app").
+  // Create the agent config
+  config := vigilant.NewAgentConfigBuilder().
+    WithName("backend").
     WithToken("tk_1234567890").
     Build()
 
-  // Initialize the logger
-  vigilant.InitLogger(config)
+  // Initialize the agent
+  vigilant.Init(config)
 
   // Log a message
   vigilant.LogInfo("Hello, World!")
 
-  // Shutdown the logger
-  vigilant.ShutdownLogger()
+  // Capture an error
+  err := errors.New("something went wrong")
+  vigilant.CaptureError(err)
+
+  // Emit a metric
+  vigilant.EmitMetric("my_metric", 1.0)
+
+  // Shutdown the agent
+  vigilant.Shutdown()
 }
 ```
