@@ -66,6 +66,64 @@ func CaptureErrort(message string, attrs map[string]string) {
 	globalAgent.sendError(errors.New(message), location, details, attrs)
 }
 
+// ----------------------- //
+// --- Wrapped Errors --- //
+// ----------------------- //
+// CaptureWrappedError wraps an error and sends it to the agent
+// Example:
+// err := db.Query(...)
+// CaptureWrappedError(err)
+func CaptureWrappedError(message string, err error) {
+	if globalAgent == nil || err == nil {
+		return
+	}
+
+	location := getLocation(2)
+	details := getDetails(err)
+
+	globalAgent.sendError(err, location, details, nil)
+}
+
+// CaptureWrappedErrorw wraps an error and sends it to the agent with attributes
+// Example:
+// err := db.Query(...)
+// CaptureWrappedErrorw(err, "db", "postgres")
+func CaptureWrappedErrorw(message string, err error, keyVals ...any) {
+	if globalAgent == nil || err == nil {
+		return
+	}
+
+	attrs, err := keyValsToMap(keyVals...)
+	if err != nil {
+		fmt.Printf("error formatting attributes: %v\n", err)
+		return
+	}
+
+	location := getLocation(2)
+	details := getDetails(err)
+
+	globalAgent.sendError(err, location, details, attrs)
+}
+
+// CaptureWrappedErrort wraps an error message and sends it to the agent with typed attributes
+// Example:
+// err := db.Query(...)
+// CaptureWrappedErrort(err, vigilant.String("db", "postgres"))
+func CaptureWrappedErrort(message string, err error, attrs map[string]string) {
+	if globalAgent == nil || err == nil {
+		return
+	}
+
+	location := getLocation(2)
+	details := getDetails(err)
+
+	globalAgent.sendError(err, location, details, attrs)
+}
+
+// ----------------------- //
+// --- Error Message --- //
+// ----------------------- //
+
 // CaptureMessage captures an error message and sends it to the agent
 // Example:
 // CaptureMessage("failed to write to file")
