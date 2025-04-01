@@ -12,10 +12,14 @@ import (
 // ----------------------- //
 
 // Log logs a message at the given level
+//
+// Use this function when you want to log a message at the given level.
+//
 // Example:
-// Log(LEVEL_INFO, "Hello, world!")
+//
+//	Log(LEVEL_INFO, "Hello, world!")
 func Log(level LogLevel, message string) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -23,10 +27,14 @@ func Log(level LogLevel, message string) {
 }
 
 // LogError logs an error at the given level
+//
+// Use this function when you want to log an error.
+//
 // Example:
-// LogError("Failed to write to file")
+//
+//	LogError("Failed to write to file")
 func LogError(message string) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -34,10 +42,14 @@ func LogError(message string) {
 }
 
 // LogWarn logs a warning at the given level
+//
+// Use this function when you want to log a warning.
+//
 // Example:
-// LogWarn("Failed to write to file")
+//
+//	LogWarn("Failed to write to file")
 func LogWarn(message string) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -45,10 +57,14 @@ func LogWarn(message string) {
 }
 
 // LogInfo logs an info message at the given level
+//
+// Use this function when you want to log an info message.
+//
 // Example:
-// LogInfo("Hello, world!")
+//
+//	LogInfo("Hello, world!")
 func LogInfo(message string) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -56,10 +72,14 @@ func LogInfo(message string) {
 }
 
 // LogDebug logs a debug message at the given level
+//
+// Use this function when you want to log a debug message.
+//
 // Example:
-// LogDebug("Hello, world!")
+//
+//	LogDebug("Hello, world!")
 func LogDebug(message string) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -67,10 +87,14 @@ func LogDebug(message string) {
 }
 
 // LogTrace logs a trace message at the given level
+//
+// Use this function when you want to log a trace message.
+//
 // Example:
-// LogTrace("Hello, world!")
+//
+//	LogTrace("Hello, world!")
 func LogTrace(message string) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -82,10 +106,13 @@ func LogTrace(message string) {
 // ------------------------- //
 
 // LogErrorf logs an error at the given level
+//
+// Use this function when you want to log an error with a formatted message.
+//
 // Example:
 // LogErrorf("Failed to %s", "do something")
 func LogErrorf(template string, args ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -93,10 +120,14 @@ func LogErrorf(template string, args ...any) {
 }
 
 // LogWarnf logs a warning at the given level
+//
+// Use this function when you want to log a warning with a formatted message.
+//
 // Example:
-// LogWarnf("Failed to %s", "do something")
+//
+//	LogWarnf("Failed to %s", "do something")
 func LogWarnf(template string, args ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -104,10 +135,14 @@ func LogWarnf(template string, args ...any) {
 }
 
 // LogInfof logs an info message at the given level
+//
+// Use this function when you want to log an info message with a formatted message.
+//
 // Example:
-// LogInfof("Failed to %s", "do something")
+//
+//	LogInfof("Failed to %s", "do something")
 func LogInfof(template string, args ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -115,10 +150,14 @@ func LogInfof(template string, args ...any) {
 }
 
 // LogDebugf logs a debug message at the given level
+//
+// Use this function when you want to log a debug message with a formatted message.
+//
 // Example:
-// LogDebugf("Failed to %s", "do something")
+//
+//	LogDebugf("Failed to %s", "do something")
 func LogDebugf(template string, args ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -126,114 +165,142 @@ func LogDebugf(template string, args ...any) {
 }
 
 // LogTracef logs a trace message at the given level
+//
+// Use this function when you want to log a trace message with a formatted message.
+//
 // Example:
-// LogTracef("Failed to %s", "do something")
+//
+//	LogTracef("Failed to %s", "do something")
 func LogTracef(template string, args ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
 	globalAgent.sendLog(LEVEL_TRACE, fmt.Sprintf(template, args...), nil)
 }
 
-// ----------------------------------- //
+// ------------------------------- //
 // --- Typed Attribute Logging --- //
-// ----------------------------------- //
+// ------------------------------- //
 
-// LogErrort logs an error at the given level with attributes
+// LogErrort logs an error at the given level with typed attributes
+//
+// Use this function when you want to log an error with typed attributes.
+//
 // Example:
-// LogErrort("Failed to write to file", "file", "example.txt", "error", "some error")
-func LogErrort(message string, fields ...Field) {
-	if globalAgent == nil {
+//
+//	LogErrort("Failed to write to file", "file", "example.txt", "error", "some error")
+func LogErrort(message string, attributes ...Attribute) {
+	if gateNilAgent() {
 		return
 	}
 
-	attrs, err := fieldsToMap(fields...)
+	attrs, err := attributesToMap(attributes...)
 	if err != nil {
-		fmt.Printf("error formatting fields: %v\n", err)
+		fmt.Printf("error formatting attributes: %v\n", err)
 		return
 	}
 
 	globalAgent.sendLog(LEVEL_ERROR, message, attrs)
 }
 
-// LogWarnt logs a warning at the given level with attributes
+// LogWarnt logs a warning at the given level with typed attributes
+//
+// Use this function when you want to log a warning with typed attributes.
+//
 // Example:
-// LogWarnt("Failed to write to file", "file", "example.txt", "error", "some error")
-func LogWarnt(message string, fields ...Field) {
-	if globalAgent == nil {
+//
+//	LogWarnt("Failed to write to file", "file", "example.txt", "error", "some error")
+func LogWarnt(message string, attributes ...Attribute) {
+	if gateNilAgent() {
 		return
 	}
 
-	attrs, err := fieldsToMap(fields...)
+	attrs, err := attributesToMap(attributes...)
 	if err != nil {
-		fmt.Printf("error formatting fields: %v\n", err)
+		fmt.Printf("error formatting attributes: %v\n", err)
 		return
 	}
 
 	globalAgent.sendLog(LEVEL_WARN, message, attrs)
 }
 
-// LogInfot logs an info message at the given level with attributes
+// LogInfot logs an info message at the given level with typed attributes
+//
+// Use this function when you want to log an info message with typed attributes.
+//
 // Example:
-// LogInfot("Failed to write to file", "file", "example.txt", "error", "some error")
-func LogInfot(message string, fields ...Field) {
-	if globalAgent == nil {
+//
+//	LogInfot("Failed to write to file", "file", "example.txt", "error", "some error")
+func LogInfot(message string, attributes ...Attribute) {
+	if gateNilAgent() {
 		return
 	}
 
-	attrs, err := fieldsToMap(fields...)
+	attrs, err := attributesToMap(attributes...)
 	if err != nil {
-		fmt.Printf("error formatting fields: %v\n", err)
+		fmt.Printf("error formatting attributes: %v\n", err)
 		return
 	}
 
 	globalAgent.sendLog(LEVEL_INFO, message, attrs)
 }
 
-// LogDebugt logs a debug message at the given level with attributes
+// LogDebugt logs a debug message at the given level with typed attributes
+//
+// Use this function when you want to log a debug message with typed attributes.
+//
 // Example:
-// LogDebugt("Failed to write to file", "file", "example.txt", "error", "some error")
-func LogDebugt(message string, fields ...Field) {
-	if globalAgent == nil {
+//
+//	LogDebugt("Failed to write to file", "file", "example.txt", "error", "some error")
+func LogDebugt(message string, attributes ...Attribute) {
+	if gateNilAgent() {
 		return
 	}
 
-	attrs, err := fieldsToMap(fields...)
+	attrs, err := attributesToMap(attributes...)
 	if err != nil {
-		fmt.Printf("error formatting fields: %v\n", err)
+		fmt.Printf("error formatting attributes: %v\n", err)
 		return
 	}
 
 	globalAgent.sendLog(LEVEL_DEBUG, message, attrs)
 }
 
-// LogTracet logs a trace message at the given level with attributes
+// LogTracet logs a trace message at the given level with typed attributes
+//
+// Use this function when you want to log a trace message with typed attributes.
+//
 // Example:
-// LogTracet("Failed to write to file", "file", "example.txt", "error", "some error")
-func LogTracet(message string, fields ...Field) {
-	if globalAgent == nil {
+//
+//	LogTracet("Failed to write to file", "file", "example.txt", "error", "some error")
+func LogTracet(message string, attributes ...Attribute) {
+	if gateNilAgent() {
 		return
 	}
 
-	attrs, err := fieldsToMap(fields...)
+	attrs, err := attributesToMap(attributes...)
 	if err != nil {
-		fmt.Printf("error formatting fields: %v\n", err)
+		fmt.Printf("error formatting attributes: %v\n", err)
 		return
 	}
 
 	globalAgent.sendLog(LEVEL_TRACE, message, attrs)
 }
 
-// ----------------------------------- //
-// --- Free-form Attribute Logging --- //
-// ----------------------------------- //
+// -------------------------------- //
+// --- Free-form Attribute Logs --- //
+// -------------------------------- //
 
-// LogErrorw logs an error at the given level with attributes
+// LogErrorw logs an error at the given level with key-value attributes
+//
+// Use this function when you want to log an error with key-value attributes.
+//
 // Example:
-// LogErrorw("Failed to write to file", "file", "example.txt", "error", "some error")
+//
+//	LogErrorw("Failed to write to file", "file", "example.txt", "error", "some error")
 func LogErrorw(message string, keyVals ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -246,11 +313,15 @@ func LogErrorw(message string, keyVals ...any) {
 	globalAgent.sendLog(LEVEL_ERROR, message, attrs)
 }
 
-// LogWarnw logs a warning at the given level with attributes
+// LogWarnw logs a warning at the given level with key-value attributes
+//
+// Use this function when you want to log a warning with key-value attributes.
+//
 // Example:
-// LogWarnw("Database query too long", "query", "SELECT * FROM users", "duration", "100ms")
+//
+//	LogWarnw("Database query too long", "query", "SELECT * FROM users", "duration", "100ms")
 func LogWarnw(message string, keyVals ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -263,11 +334,15 @@ func LogWarnw(message string, keyVals ...any) {
 	globalAgent.sendLog(LEVEL_WARN, message, attrs)
 }
 
-// LogInfow logs an info message at the given level with attributes
+// LogInfow logs an info message at the given level with key-value attributes
+//
+// Use this function when you want to log an info message with key-value attributes.
+//
 // Example:
-// LogInfow("User signup request", "email", "test@example.com")
+//
+//	LogInfow("User signup request", "email", "test@example.com")
 func LogInfow(message string, keyVals ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -280,11 +355,15 @@ func LogInfow(message string, keyVals ...any) {
 	globalAgent.sendLog(LEVEL_INFO, message, attrs)
 }
 
-// LogDebugw logs a debug message at the given level with attributes
+// LogDebugw logs a debug message at the given level with key-value attributes
+//
+// Use this function when you want to log a debug message with key-value attributes.
+//
 // Example:
-// LogDebugw("Timer tick", "time", "100ms")
+//
+//	LogDebugw("Timer tick", "time", "100ms")
 func LogDebugw(message string, keyVals ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 

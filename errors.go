@@ -16,12 +16,16 @@ import (
 // --- General Errors --- //
 // ----------------------- //
 
-// CaptureError captures an error and sends it to the agent
+// CaptureError captures an error and sends it to the agent.
+//
+// Use this function when you want to capture an error.
+//
 // Example:
-// err := db.Query(...)
-// CaptureError(err)
+//
+//	err := db.Query(...)
+//	CaptureError(err)
 func CaptureError(err error) {
-	if globalAgent == nil || err == nil {
+	if gateNilAgent() || err == nil {
 		return
 	}
 
@@ -31,12 +35,16 @@ func CaptureError(err error) {
 	globalAgent.sendError(err, location, details, nil)
 }
 
-// CaptureErrorw captures an error and sends it to the agent with attributes
+// CaptureErrorw captures an error and sends it to the agent with attributes.
+//
+// Use this function when you want to capture an error with additional key-value attributes.
+//
 // Example:
-// err := db.Query(...)
-// CaptureErrorw(err, "db", "postgres")
+//
+//	err := db.Query(...)
+//	CaptureErrorw(err, "db", "postgres")
 func CaptureErrorw(err error, keyVals ...any) {
-	if globalAgent == nil || err == nil {
+	if gateNilAgent() || err == nil {
 		return
 	}
 
@@ -52,12 +60,16 @@ func CaptureErrorw(err error, keyVals ...any) {
 	globalAgent.sendError(err, location, details, attrs)
 }
 
-// CaptureErrort captures an error message and sends it to the agent with typed attributes
+// CaptureErrort captures an error message and sends it to the agent with typed attributes.
+//
+// Use this function when you want to capture an error with additional typed attributes.
+//
 // Example:
-// err := db.Query(...)
-// CaptureErrort(err, vigilant.String("db", "postgres"))
+//
+//	err := db.Query(...)
+//	CaptureErrort(err, vigilant.String("db", "postgres"))
 func CaptureErrort(message string, attrs map[string]string) {
-	if globalAgent == nil || message == "" {
+	if gateNilAgent() || message == "" {
 		return
 	}
 
@@ -69,12 +81,17 @@ func CaptureErrort(message string, attrs map[string]string) {
 // ----------------------- //
 // --- Wrapped Errors --- //
 // ----------------------- //
-// CaptureWrappedError wraps an error and sends it to the agent
+
+// CaptureWrappedError wraps an error and sends it to the agent.
+//
+// Use this function when you want to capture and wrap an error.
+//
 // Example:
-// err := db.Query(...)
-// CaptureWrappedError(err)
+//
+//	err := db.Query(...)
+//	CaptureWrappedError(err)
 func CaptureWrappedError(message string, err error) {
-	if globalAgent == nil || err == nil {
+	if gateNilAgent() || err == nil {
 		return
 	}
 
@@ -84,12 +101,16 @@ func CaptureWrappedError(message string, err error) {
 	globalAgent.sendError(err, location, details, nil)
 }
 
-// CaptureWrappedErrorw wraps an error and sends it to the agent with attributes
+// CaptureWrappedErrorw wraps an error and sends it to the agent with attributes.
+//
+// Use this function when you want to capture and wrap an error with additional key-value attributes.
+//
 // Example:
-// err := db.Query(...)
-// CaptureWrappedErrorw(err, "db", "postgres")
+//
+//	err := db.Query(...)
+//	CaptureWrappedErrorw(err, "db", "postgres")
 func CaptureWrappedErrorw(message string, err error, keyVals ...any) {
-	if globalAgent == nil || err == nil {
+	if gateNilAgent() || err == nil {
 		return
 	}
 
@@ -105,12 +126,16 @@ func CaptureWrappedErrorw(message string, err error, keyVals ...any) {
 	globalAgent.sendError(err, location, details, attrs)
 }
 
-// CaptureWrappedErrort wraps an error message and sends it to the agent with typed attributes
+// CaptureWrappedErrort wraps an error message and sends it to the agent with typed attributes.
+//
+// Use this function when you want to capture and wrap an error with additional typed attributes.
+//
 // Example:
-// err := db.Query(...)
-// CaptureWrappedErrort(err, vigilant.String("db", "postgres"))
+//
+//	err := db.Query(...)
+//	CaptureWrappedErrort(err, vigilant.String("db", "postgres"))
 func CaptureWrappedErrort(message string, err error, attrs map[string]string) {
-	if globalAgent == nil || err == nil {
+	if gateNilAgent() || err == nil {
 		return
 	}
 
@@ -120,15 +145,19 @@ func CaptureWrappedErrort(message string, err error, attrs map[string]string) {
 	globalAgent.sendError(err, location, details, attrs)
 }
 
-// ----------------------- //
+// --------------------- //
 // --- Error Message --- //
-// ----------------------- //
+// --------------------- //
 
-// CaptureMessage captures an error message and sends it to the agent
+// CaptureMessage captures creates an error from a message and sends it to the agent.
+//
+// Use this function when you want to capture an inline error message.
+//
 // Example:
-// CaptureMessage("failed to write to file")
+//
+//	CaptureMessage("failed to write to file")
 func CaptureMessage(message string) {
-	if globalAgent == nil || message == "" {
+	if gateNilAgent() || message == "" {
 		return
 	}
 
@@ -139,11 +168,15 @@ func CaptureMessage(message string) {
 	globalAgent.sendError(capturedErr, location, details, nil)
 }
 
-// CaptureMessagef captures an error message and sends it to the agent
+// CaptureMessagef captures an error message and sends it to the agent.
+//
+// Use this function when you want to capture an inline error message with additional key-value attributes.
+//
 // Example:
-// CaptureMessagef("failed to write to file: %s", "file.txt")
+//
+//	CaptureMessagef("failed to write to file: %s", "file.txt")
 func CaptureMessagef(template string, args ...any) {
-	if globalAgent == nil || template == "" {
+	if gateNilAgent() || template == "" {
 		return
 	}
 
@@ -154,11 +187,15 @@ func CaptureMessagef(template string, args ...any) {
 	globalAgent.sendError(capturedErr, location, details, nil)
 }
 
-// CaptureMessagew captures an error message and sends it to the agent with attributes
+// CaptureMessagew captures an error message and sends it to the agent with attributes.
+//
+// Use this function when you want to capture an inline error message with additional key-value attributes.
+//
 // Example:
-// CaptureMessagew("failed to write to file", "file.txt", "db", "postgres")
+//
+//	CaptureMessagew("failed to write to file", "file.txt", "db", "postgres")
 func CaptureMessagew(template string, args ...any) {
-	if globalAgent == nil || template == "" {
+	if gateNilAgent() || template == "" {
 		return
 	}
 
@@ -175,14 +212,18 @@ func CaptureMessagew(template string, args ...any) {
 	globalAgent.sendError(capturedErr, location, details, attrs)
 }
 
-// CaptureMessaget captures an error message and sends it to the agent with attributes
+// CaptureMessaget captures an error message and sends it to the agent with attributes.
+//
+// Use this function when you want to capture an inline error message with additional typed attributes.
+//
 // Example:
-// -- CaptureMessaget("failed to write to file", vigilant.String("db", "postgres"))
-func CaptureMessaget(message string, fields ...Field) {
-	if globalAgent == nil || message == "" {
+//
+//	CaptureMessaget("failed to write to file", vigilant.String("db", "postgres"))
+func CaptureMessaget(message string, attributes ...Attribute) {
+	if gateNilAgent() || message == "" {
 		return
 	}
-	attrs, err := fieldsToMap(fields...)
+	attrs, err := attributesToMap(attributes...)
 	if err != nil {
 		fmt.Printf("error formatting fields: %v\n", err)
 		return

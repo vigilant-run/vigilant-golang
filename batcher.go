@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// batcher is a struct that contains the queues for the logs, errors, metrics, and alerts
+// it also contains the http client and the wait group
+// when a batch is ready, the batcher will send it to the server
 type batcher struct {
 	token    string
 	endpoint string
@@ -16,6 +19,7 @@ type batcher struct {
 	logQueue    chan *logMessage
 	errorQueue  chan *errorMessage
 	metricQueue chan *metricMessage
+	alertQueue  chan *alertMessage
 
 	client *http.Client
 
@@ -23,6 +27,7 @@ type batcher struct {
 	wg        sync.WaitGroup
 }
 
+// newBatcher creates a new batcher
 func newBatcher(
 	token string,
 	endpoint string,
@@ -39,13 +44,16 @@ func newBatcher(
 	}
 }
 
+// start starts the batcher
 func (b *batcher) start() {
-	b.wg.Add(3)
+	b.wg.Add(4)
 	go b.runLogBatcher()
 	go b.runErrorBatcher()
 	go b.runMetricBatcher()
+	go b.runAlertBatcher()
 }
 
+// addLog adds a log to the batcher's queue
 func (b *batcher) addLog(message *logMessage) {
 	if message == nil {
 		return
@@ -53,6 +61,7 @@ func (b *batcher) addLog(message *logMessage) {
 	b.logQueue <- message
 }
 
+// addError adds an error to the batcher's queue
 func (b *batcher) addError(message *errorMessage) {
 	if message == nil {
 		return
@@ -60,6 +69,7 @@ func (b *batcher) addError(message *errorMessage) {
 	b.errorQueue <- message
 }
 
+// addMetric adds a metric to the batcher's queue
 func (b *batcher) addMetric(message *metricMessage) {
 	if message == nil {
 		return
@@ -67,6 +77,15 @@ func (b *batcher) addMetric(message *metricMessage) {
 	b.metricQueue <- message
 }
 
+// addAlert adds an alert to the batcher's queue
+func (b *batcher) addAlert(message *alertMessage) {
+	if message == nil {
+		return
+	}
+	b.alertQueue <- message
+}
+
+// runLogBatcher runs the log batcher
 func (b *batcher) runLogBatcher() {
 	defer b.wg.Done()
 
@@ -106,6 +125,7 @@ func (b *batcher) runLogBatcher() {
 	}
 }
 
+// runErrorBatcher runs the error batcher
 func (b *batcher) runErrorBatcher() {
 	defer b.wg.Done()
 
@@ -140,6 +160,42 @@ func (b *batcher) runErrorBatcher() {
 	}
 }
 
+// runAlertBatcher runs the alert batcher
+func (b *batcher) runAlertBatcher() {
+	defer b.wg.Done()
+
+	const maxBatchSize = 100
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	var alerts []*alertMessage
+
+	for {
+		select {
+		case <-b.batchStop:
+			if len(alerts) > 0 {
+				b.sendAlertBatch(alerts)
+			}
+			return
+		case msg := <-b.alertQueue:
+			if msg == nil {
+				continue
+			}
+			alerts = append(alerts, msg)
+			if len(alerts) >= maxBatchSize {
+				b.sendAlertBatch(alerts)
+				alerts = nil
+			}
+		case <-ticker.C:
+			if len(alerts) > 0 {
+				b.sendAlertBatch(alerts)
+				alerts = nil
+			}
+		}
+	}
+}
+
+// runMetricBatcher runs the metric batcher
 func (b *batcher) runMetricBatcher() {
 	defer b.wg.Done()
 
@@ -174,11 +230,13 @@ func (b *batcher) runMetricBatcher() {
 	}
 }
 
+// stop stops the batcher
 func (b *batcher) stop() {
 	close(b.batchStop)
 	b.wg.Wait()
 }
 
+// sendLogBatch sends a log batch to the server
 func (b *batcher) sendLogBatch(logs []*logMessage) error {
 	if len(logs) == 0 {
 		return nil
@@ -203,6 +261,7 @@ func (b *batcher) sendLogBatch(logs []*logMessage) error {
 	return nil
 }
 
+// sendErrorBatch sends an error batch to the server
 func (b *batcher) sendErrorBatch(errors []*errorMessage) {
 	if len(errors) == 0 {
 		return
@@ -225,6 +284,30 @@ func (b *batcher) sendErrorBatch(errors []*errorMessage) {
 	}
 }
 
+// sendAlertBatch sends an alert batch to the server
+func (b *batcher) sendAlertBatch(alerts []*alertMessage) {
+	if len(alerts) == 0 {
+		return
+	}
+
+	batch := &messageBatch{
+		Token:  b.token,
+		Type:   messageTypeAlert,
+		Alerts: alerts,
+	}
+
+	batchBytes, err := json.Marshal(batch)
+	if err != nil {
+		return
+	}
+
+	err = b.sendBatch(batchBytes)
+	if err != nil {
+		fmt.Printf("error sending alert batch to %s: %v\n", b.endpoint, err)
+	}
+}
+
+// sendMetricBatch sends a metric batch to the server
 func (b *batcher) sendMetricBatch(metrics []*metricMessage) {
 	if len(metrics) == 0 {
 		return
@@ -247,6 +330,7 @@ func (b *batcher) sendMetricBatch(metrics []*metricMessage) {
 	}
 }
 
+// sendBatch sends a batch to the server
 func (b *batcher) sendBatch(batchBytes []byte) error {
 	req, err := http.NewRequest("POST", b.endpoint, bytes.NewBuffer(batchBytes))
 	if err != nil {

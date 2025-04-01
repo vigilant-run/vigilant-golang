@@ -9,10 +9,14 @@ import "fmt"
 // ----------------------- //
 
 // EmitMetric captures a metric and sends it to the agent
+//
+// Use this function when you want to capture a metric.
+//
 // Example:
-// EmitMetric("my_metric", 1.0)
+//
+//	EmitMetric("my_metric", 1.0)
 func EmitMetric(name string, value float64) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -20,10 +24,14 @@ func EmitMetric(name string, value float64) {
 }
 
 // EmitMetricw captures a metric and sends it to the agent with attributes
+//
+// Use this function when you want to capture a metric with key-value attributes.
+//
 // Example:
-// EmitMetricw("my_metric", 1.0, "key1", "value1", "key2", "value2")
+//
+//	EmitMetricw("my_metric", 1.0, "key1", "value1", "key2", "value2")
 func EmitMetricw(name string, value float64, keyVals ...any) {
-	if globalAgent == nil {
+	if gateNilAgent() {
 		return
 	}
 
@@ -37,14 +45,18 @@ func EmitMetricw(name string, value float64, keyVals ...any) {
 }
 
 // EmitMetrict captures a metric and sends it to the agent with typed attributes
+//
+// Use this function when you want to capture a metric with typed attributes.
+//
 // Example:
-// EmitMetrict("my_metric", vigilant.Float64("value", 1.2345))
-func EmitMetrict(name string, value float64, fields ...Field) {
-	if globalAgent == nil {
+//
+//	EmitMetrict("my_metric", vigilant.Float64("value", 1.2345))
+func EmitMetrict(name string, value float64, attributes ...Attribute) {
+	if gateNilAgent() {
 		return
 	}
 
-	attrs, err := fieldsToMap(fields...)
+	attrs, err := attributesToMap(attributes...)
 	if err != nil {
 		fmt.Printf("error formatting attributes: %v\n", err)
 		return

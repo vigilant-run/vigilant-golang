@@ -2,31 +2,49 @@ package vigilant
 
 // AgentConfig is the configuration for the Vigilant agent
 type AgentConfig struct {
+	// Name is the name of the service being monitored
 	Name string
 
+	// Level is the level of log the agent will send to the server
 	Level LogLevel
 
-	Token       string
-	Endpoint    string
-	Passthrough bool
-	Insecure    bool
+	// Token is the Vigilant API token
+	Token string
 
-	NoopLogs    bool
-	NoopErrors  bool
+	// Endpoint is the endpoint of the Vigilant server
+	Endpoint string
+
+	// Passthrough is whether to print logs, errors, metrics, and alerts to stdout
+	Passthrough bool
+
+	// Insecure is whether to use HTTP instead of HTTPS
+	Insecure bool
+
+	// NoopLogs is whether to not send logs to the server
+	NoopLogs bool
+
+	// NoopErrors is whether to not send errors to the server
+	NoopErrors bool
+
+	// NoopAlerts is whether to not send alerts to the server
+	NoopAlerts bool
+
+	// NoopMetrics is whether to not send metrics to the server
 	NoopMetrics bool
 }
 
 // AgentConfigBuilder is the builder for the Vigilant agent configuration
 type AgentConfigBuilder struct {
-	Name        *string
-	Level       *LogLevel
-	Token       *string
-	Endpoint    *string
-	Passthrough *bool
-	Insecure    *bool
-	NoopLogs    *bool
-	NoopErrors  *bool
-	NoopMetrics *bool
+	name        *string
+	level       *LogLevel
+	token       *string
+	endpoint    *string
+	passthrough *bool
+	insecure    *bool
+	noopLogs    *bool
+	noopErrors  *bool
+	noopAlerts  *bool
+	noopMetrics *bool
 }
 
 // NewAgentConfigBuilder creates a new agent configuration builder
@@ -36,55 +54,61 @@ func NewAgentConfigBuilder() *AgentConfigBuilder {
 
 // WithName sets the name of the agent
 func (b *AgentConfigBuilder) WithName(name string) *AgentConfigBuilder {
-	b.Name = &name
+	b.name = &name
 	return b
 }
 
 // WithLevel sets the level of the agent
 func (b *AgentConfigBuilder) WithLevel(level LogLevel) *AgentConfigBuilder {
-	b.Level = &level
+	b.level = &level
 	return b
 }
 
 // WithToken sets the token of the agent
 func (b *AgentConfigBuilder) WithToken(token string) *AgentConfigBuilder {
-	b.Token = &token
+	b.token = &token
 	return b
 }
 
 // WithEndpoint sets the endpoint of the agent
 func (b *AgentConfigBuilder) WithEndpoint(endpoint string) *AgentConfigBuilder {
-	b.Endpoint = &endpoint
+	b.endpoint = &endpoint
 	return b
 }
 
 // WithPassthrough sets the passthrough of the agent
 func (b *AgentConfigBuilder) WithPassthrough(passthrough bool) *AgentConfigBuilder {
-	b.Passthrough = &passthrough
+	b.passthrough = &passthrough
 	return b
 }
 
 // WithInsecure sets the insecure of the agent
 func (b *AgentConfigBuilder) WithInsecure(insecure bool) *AgentConfigBuilder {
-	b.Insecure = &insecure
+	b.insecure = &insecure
 	return b
 }
 
 // WithNoopLogs sets the agent to not send logs
 func (b *AgentConfigBuilder) WithNoopLogs(noop bool) *AgentConfigBuilder {
-	b.NoopLogs = &noop
+	b.noopLogs = &noop
 	return b
 }
 
 // WithNoopErrors sets the agent to not send errors
 func (b *AgentConfigBuilder) WithNoopErrors(noop bool) *AgentConfigBuilder {
-	b.NoopErrors = &noop
+	b.noopErrors = &noop
+	return b
+}
+
+// WithNoopAlerts sets the agent to not send alerts
+func (b *AgentConfigBuilder) WithNoopAlerts(noop bool) *AgentConfigBuilder {
+	b.noopAlerts = &noop
 	return b
 }
 
 // WithNoopMetrics sets the agent to not send metrics
 func (b *AgentConfigBuilder) WithNoopMetrics(noop bool) *AgentConfigBuilder {
-	b.NoopMetrics = &noop
+	b.noopMetrics = &noop
 	return b
 }
 
@@ -99,43 +123,48 @@ func (b *AgentConfigBuilder) Build() *AgentConfig {
 		Insecure:    false,
 		NoopLogs:    false,
 		NoopErrors:  false,
+		NoopAlerts:  false,
 		NoopMetrics: false,
 	}
 
-	if b.Name != nil {
-		config.Name = *b.Name
+	if b.name != nil {
+		config.Name = *b.name
 	}
 
-	if b.Level != nil {
-		config.Level = *b.Level
+	if b.level != nil {
+		config.Level = *b.level
 	}
 
-	if b.Token != nil {
-		config.Token = *b.Token
+	if b.token != nil {
+		config.Token = *b.token
 	}
 
-	if b.Endpoint != nil {
-		config.Endpoint = *b.Endpoint
+	if b.endpoint != nil {
+		config.Endpoint = *b.endpoint
 	}
 
-	if b.Passthrough != nil {
-		config.Passthrough = *b.Passthrough
+	if b.passthrough != nil {
+		config.Passthrough = *b.passthrough
 	}
 
-	if b.Insecure != nil {
-		config.Insecure = *b.Insecure
+	if b.insecure != nil {
+		config.Insecure = *b.insecure
 	}
 
-	if b.NoopLogs != nil {
-		config.NoopLogs = *b.NoopLogs
+	if b.noopLogs != nil {
+		config.NoopLogs = *b.noopLogs
 	}
 
-	if b.NoopErrors != nil {
-		config.NoopErrors = *b.NoopErrors
+	if b.noopErrors != nil {
+		config.NoopErrors = *b.noopErrors
 	}
 
-	if b.NoopMetrics != nil {
-		config.NoopMetrics = *b.NoopMetrics
+	if b.noopAlerts != nil {
+		config.NoopAlerts = *b.noopAlerts
+	}
+
+	if b.noopMetrics != nil {
+		config.NoopMetrics = *b.noopMetrics
 	}
 
 	return config
@@ -153,5 +182,6 @@ func NewNoopAgentConfig() *AgentConfig {
 		NoopLogs:    true,
 		NoopErrors:  true,
 		NoopMetrics: true,
+		NoopAlerts:  true,
 	}
 }

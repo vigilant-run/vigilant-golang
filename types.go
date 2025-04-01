@@ -2,17 +2,6 @@ package vigilant
 
 import "time"
 
-// Attribute is a map of metadata to be sent with the error
-type Attribute struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-// NewAttribute creates a new Attribute
-func NewAttribute(key, value string) Attribute {
-	return Attribute{Key: key, Value: value}
-}
-
 // LogLevel represents the severity of the log message
 type LogLevel string
 
@@ -31,6 +20,7 @@ const (
 	messageTypeLog    messageType = "logs"
 	messageTypeError  messageType = "errors"
 	messageTypeMetric messageType = "metrics"
+	messageTypeAlert  messageType = "alerts"
 )
 
 // messageBatch represents a batch of logs
@@ -40,6 +30,7 @@ type messageBatch struct {
 	Logs    []*logMessage    `json:"logs,omitempty"`
 	Errors  []*errorMessage  `json:"errors,omitempty"`
 	Metrics []*metricMessage `json:"metrics,omitempty"`
+	Alerts  []*alertMessage  `json:"alerts,omitempty"`
 }
 
 // logMessage represents a log message
@@ -70,6 +61,13 @@ type errorDetails struct {
 	Type       string `json:"type"`
 	Message    string `json:"message"`
 	Stacktrace string `json:"stacktrace"`
+}
+
+// alertMessage represents an alert message
+type alertMessage struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Title      string            `json:"title"`
+	Attributes map[string]string `json:"attributes"`
 }
 
 // metricMessage represents a metric message

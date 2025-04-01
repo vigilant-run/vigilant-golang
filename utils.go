@@ -20,12 +20,12 @@ func keyValsToMap(keyVals ...any) (map[string]string, error) {
 	return attrs, nil
 }
 
-// fieldsToMap formats a list of fields into a map
+// attributesToMap formats a list of attributes into a map
 // it is a utility function for some of the observability functions
-func fieldsToMap(fields ...Field) (map[string]string, error) {
+func attributesToMap(attributes ...Attribute) (map[string]string, error) {
 	attrs := make(map[string]string)
-	for _, field := range fields {
-		attrs[field.Key] = field.Value
+	for _, attribute := range attributes {
+		attrs[attribute.Key] = attribute.Value
 	}
 	return attrs, nil
 }
@@ -73,4 +73,22 @@ func getLevelInt(level LogLevel) int {
 	default:
 		return 0
 	}
+}
+
+// gateNilAgent checks if the agent is nil
+func gateNilAgent() bool {
+	if globalAgent == nil {
+		fmt.Printf("\n[ERROR] The Vigilant agent is not initialized.\n\tPlease call vigilant.Init() before using the agent.\n\tDocs: https://docs.vigilant.run/overview\n")
+		return true
+	}
+	return false
+}
+
+// gateEmptyAlertTitle checks if the title is empty
+func gateEmptyAlertTitle(title string) bool {
+	if title == "" {
+		fmt.Printf("\n[ERROR] The alert title is empty.\n\tPlease provide a non-empty title.\n\tDocs: https://docs.vigilant.run/overview\n")
+		return true
+	}
+	return false
 }

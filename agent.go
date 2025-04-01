@@ -12,12 +12,18 @@ var globalAgent *agent
 // Init initializes the agent, it should be called once when the program is starting
 // Before calling this, all other Vigilant functions will be noops
 func Init(config *AgentConfig) {
+	if globalAgent != nil {
+		return
+	}
 	globalAgent = newAgent(config)
 	globalAgent.start()
 }
 
 // Shutdown shuts down the agent, it should be called once when the program is shutting down
 func Shutdown() error {
+	if globalAgent == nil {
+		return nil
+	}
 	return globalAgent.shutdown()
 }
 
@@ -31,6 +37,7 @@ type agent struct {
 	noopLogs    bool
 	noopErrors  bool
 	noopMetrics bool
+	noopAlerts  bool
 
 	batcher *batcher
 }
@@ -56,7 +63,7 @@ func newAgent(config *AgentConfig) *agent {
 
 // start starts the agent
 func (a *agent) start() {
-	if a.noopLogs && a.noopErrors && a.noopMetrics {
+	if a.noopLogs && a.noopErrors && a.noopMetrics && a.noopAlerts {
 		return
 	}
 	a.batcher.start()
@@ -123,6 +130,30 @@ func (a *agent) sendError(
 	}
 
 	a.batcher.addError(errorMessage)
+}
+
+// sendAlert sends an alert to the agent
+func (a *agent) sendAlert(
+	title string,
+	attrs map[string]string,
+) {
+	updatedAttrs := a.withBaseAttributes(attrs)
+
+	if a.passthrough {
+		writeAlertPassthrough(title, updatedAttrs)
+	}
+
+	if a.noopAlerts {
+		return
+	}
+
+	alertMessage := &alertMessage{
+		Timestamp:  time.Now(),
+		Title:      title,
+		Attributes: updatedAttrs,
+	}
+
+	a.batcher.addAlert(alertMessage)
 }
 
 // sendMetric sends a metric to the agent
