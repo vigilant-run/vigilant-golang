@@ -92,7 +92,7 @@ func (b *AgentConfigBuilder) WithNoopMetrics(noop bool) *AgentConfigBuilder {
 func (b *AgentConfigBuilder) Build() *AgentConfig {
 	config := &AgentConfig{
 		Name:        "server-name",
-		Level:       LEVEL_DEBUG,
+		Level:       LEVEL_TRACE,
 		Token:       "tk_1234567890",
 		Endpoint:    "ingress.vigilant.run",
 		Passthrough: false,
@@ -145,7 +145,7 @@ func (b *AgentConfigBuilder) Build() *AgentConfig {
 func NewNoopAgentConfig() *AgentConfig {
 	return &AgentConfig{
 		Name:        "server-name",
-		Level:       LEVEL_DEBUG,
+		Level:       LEVEL_TRACE,
 		Token:       "tk_1234567890",
 		Endpoint:    "ingress.vigilant.run",
 		Insecure:    false,
