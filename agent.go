@@ -76,6 +76,9 @@ func (a *agent) sendLog(
 	if !isLevelEnabled(level, a.level) {
 		return
 	}
+
+	a.updateAttributes(attrs)
+
 	if a.passthrough {
 		writeLogPassthrough(level, message, attrs)
 	}
@@ -100,6 +103,8 @@ func (a *agent) sendError(
 	details errorDetails,
 	attrs map[string]string,
 ) {
+	a.updateAttributes(attrs)
+
 	if a.passthrough {
 		writeErrorPassthrough(err, attrs)
 	}
@@ -123,6 +128,8 @@ func (a *agent) sendMetric(
 	value float64,
 	attrs map[string]string,
 ) {
+	a.updateAttributes(attrs)
+
 	if a.passthrough {
 		writeMetricPassthrough(name, value, attrs)
 	}
@@ -138,4 +145,12 @@ func (a *agent) sendMetric(
 	}
 
 	a.batcher.addMetric(metricMessage)
+}
+
+// updateAttributes adds the service name attribute to the given attributes
+func (a *agent) updateAttributes(attrs map[string]string) {
+	if a == nil {
+		return
+	}
+	attrs["service.name"] = a.name
 }
