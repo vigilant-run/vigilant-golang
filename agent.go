@@ -1,6 +1,7 @@
 package vigilant
 
 import (
+	"maps"
 	"net/http"
 	"time"
 )
@@ -152,9 +153,10 @@ func (a *agent) sendMetric(
 
 // withBaseAttributes adds the service name attribute to the given attributes
 func (a *agent) withBaseAttributes(attrs map[string]string) map[string]string {
-	if attrs == nil {
-		attrs = make(map[string]string)
+	updatedAttrs := make(map[string]string)
+	if attrs != nil {
+		maps.Copy(updatedAttrs, attrs)
 	}
-	attrs["service.name"] = a.name
-	return attrs
+	updatedAttrs["service.name"] = a.name
+	return updatedAttrs
 }
