@@ -39,6 +39,7 @@ func newBatcher(
 		logQueue:    make(chan *logMessage, 1000),
 		errorQueue:  make(chan *errorMessage, 1000),
 		metricQueue: make(chan *metricMessage, 1000),
+		alertQueue:  make(chan *alertMessage, 1000),
 		batchStop:   make(chan struct{}),
 		client:      httpClient,
 	}
