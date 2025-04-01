@@ -77,11 +77,12 @@ func (a *agent) sendLog(
 		return
 	}
 
-	a.withBaseAttributes(attrs)
+	updatedAttrs := a.withBaseAttributes(attrs)
 
 	if a.passthrough {
-		writeLogPassthrough(level, message, attrs)
+		writeLogPassthrough(level, message, updatedAttrs)
 	}
+
 	if a.noopLogs {
 		return
 	}
@@ -103,11 +104,12 @@ func (a *agent) sendError(
 	details errorDetails,
 	attrs map[string]string,
 ) {
-	a.withBaseAttributes(attrs)
+	updatedAttrs := a.withBaseAttributes(attrs)
 
 	if a.passthrough {
-		writeErrorPassthrough(err, attrs)
+		writeErrorPassthrough(err, updatedAttrs)
 	}
+
 	if a.noopErrors {
 		return
 	}
@@ -116,7 +118,7 @@ func (a *agent) sendError(
 		Timestamp:  time.Now(),
 		Details:    details,
 		Location:   location,
-		Attributes: attrs,
+		Attributes: updatedAttrs,
 	}
 
 	a.batcher.addError(errorMessage)
@@ -128,11 +130,12 @@ func (a *agent) sendMetric(
 	value float64,
 	attrs map[string]string,
 ) {
-	a.withBaseAttributes(attrs)
+	updatedAttrs := a.withBaseAttributes(attrs)
 
 	if a.passthrough {
-		writeMetricPassthrough(name, value, attrs)
+		writeMetricPassthrough(name, value, updatedAttrs)
 	}
+
 	if a.noopMetrics {
 		return
 	}
@@ -148,9 +151,10 @@ func (a *agent) sendMetric(
 }
 
 // withBaseAttributes adds the service name attribute to the given attributes
-func (a *agent) withBaseAttributes(attrs map[string]string) {
+func (a *agent) withBaseAttributes(attrs map[string]string) map[string]string {
 	if attrs == nil {
 		attrs = make(map[string]string)
 	}
 	attrs["service.name"] = a.name
+	return attrs
 }
