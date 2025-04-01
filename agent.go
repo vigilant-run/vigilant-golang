@@ -92,7 +92,7 @@ func (a *agent) sendLog(
 		Timestamp:  time.Now(),
 		Level:      level,
 		Body:       message,
-		Attributes: attrs,
+		Attributes: updatedAttrs,
 	}
 
 	a.batcher.addLog(logMessage)
@@ -145,7 +145,7 @@ func (a *agent) sendMetric(
 		Timestamp:  time.Now(),
 		Name:       name,
 		Value:      value,
-		Attributes: attrs,
+		Attributes: updatedAttrs,
 	}
 
 	a.batcher.addMetric(metricMessage)
