@@ -28,16 +28,15 @@ func Shutdown() error {
 }
 
 // agent is the internal representation of the agent
-// it handles the sending of logs, errors, and metrics to Vigilant
+// it handles the sending of logs, alerts, and metrics to Vigilant
 type agent struct {
 	name        string
 	level       LogLevel
 	token       string
 	passthrough bool
 	noopLogs    bool
-	noopErrors  bool
-	noopMetrics bool
 	noopAlerts  bool
+	noopMetrics bool
 
 	batcher *batcher
 }
@@ -55,7 +54,7 @@ func newAgent(config *AgentConfig) *agent {
 		token:       config.Token,
 		passthrough: config.Passthrough,
 		noopLogs:    config.NoopLogs,
-		noopErrors:  config.NoopErrors,
+		noopAlerts:  config.NoopAlerts,
 		noopMetrics: config.NoopMetrics,
 		batcher:     batcher,
 	}
@@ -63,7 +62,7 @@ func newAgent(config *AgentConfig) *agent {
 
 // start starts the agent
 func (a *agent) start() {
-	if a.noopLogs && a.noopErrors && a.noopMetrics && a.noopAlerts {
+	if a.noopLogs && a.noopAlerts && a.noopMetrics {
 		return
 	}
 	a.batcher.start()
@@ -103,33 +102,6 @@ func (a *agent) sendLog(
 	}
 
 	a.batcher.addLog(logMessage)
-}
-
-// sendError sends an error to the agent
-func (a *agent) sendError(
-	err error,
-	location errorLocation,
-	details errorDetails,
-	attrs map[string]string,
-) {
-	updatedAttrs := a.withBaseAttributes(attrs)
-
-	if a.passthrough {
-		writeErrorPassthrough(err, updatedAttrs)
-	}
-
-	if a.noopErrors {
-		return
-	}
-
-	errorMessage := &errorMessage{
-		Timestamp:  time.Now(),
-		Details:    details,
-		Location:   location,
-		Attributes: updatedAttrs,
-	}
-
-	a.batcher.addError(errorMessage)
 }
 
 // sendAlert sends an alert to the agent

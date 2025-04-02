@@ -30,9 +30,8 @@ func main() {
   // Log a message
   vigilant.LogInfo("Hello, World!")
 
-  // Capture an error
-  err := errors.New("something went wrong")
-  vigilant.CaptureError(err)
+  // Send an alert
+  vigilant.SendAlert("Something went wrong")
 
   // Emit a metric
   vigilant.EmitMetric("my_metric", 1.0)

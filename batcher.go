@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// batcher is a struct that contains the queues for the logs, errors, metrics, and alerts
+// batcher is a struct that contains the queues for the logs, alerts, and metrics
 // it also contains the http client and the wait group
 // when a batch is ready, the batcher will send it to the server
 type batcher struct {
@@ -17,7 +17,6 @@ type batcher struct {
 	endpoint string
 
 	logQueue    chan *logMessage
-	errorQueue  chan *errorMessage
 	metricQueue chan *metricMessage
 	alertQueue  chan *alertMessage
 
@@ -37,7 +36,6 @@ func newBatcher(
 		token:       token,
 		endpoint:    endpoint,
 		logQueue:    make(chan *logMessage, 1000),
-		errorQueue:  make(chan *errorMessage, 1000),
 		metricQueue: make(chan *metricMessage, 1000),
 		alertQueue:  make(chan *alertMessage, 1000),
 		batchStop:   make(chan struct{}),
@@ -47,9 +45,8 @@ func newBatcher(
 
 // start starts the batcher
 func (b *batcher) start() {
-	b.wg.Add(4)
+	b.wg.Add(3)
 	go b.runLogBatcher()
-	go b.runErrorBatcher()
 	go b.runMetricBatcher()
 	go b.runAlertBatcher()
 }
@@ -60,14 +57,6 @@ func (b *batcher) addLog(message *logMessage) {
 		return
 	}
 	b.logQueue <- message
-}
-
-// addError adds an error to the batcher's queue
-func (b *batcher) addError(message *errorMessage) {
-	if message == nil {
-		return
-	}
-	b.errorQueue <- message
 }
 
 // addMetric adds a metric to the batcher's queue
@@ -121,41 +110,6 @@ func (b *batcher) runLogBatcher() {
 					fmt.Printf("error sending log batch: %v\n", err)
 				}
 				logs = nil
-			}
-		}
-	}
-}
-
-// runErrorBatcher runs the error batcher
-func (b *batcher) runErrorBatcher() {
-	defer b.wg.Done()
-
-	const maxBatchSize = 100
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	var errors []*errorMessage
-
-	for {
-		select {
-		case <-b.batchStop:
-			if len(errors) > 0 {
-				b.sendErrorBatch(errors)
-			}
-			return
-		case msg := <-b.errorQueue:
-			if msg == nil {
-				continue
-			}
-			errors = append(errors, msg)
-			if len(errors) >= maxBatchSize {
-				b.sendErrorBatch(errors)
-				errors = nil
-			}
-		case <-ticker.C:
-			if len(errors) > 0 {
-				b.sendErrorBatch(errors)
-				errors = nil
 			}
 		}
 	}
@@ -260,29 +214,6 @@ func (b *batcher) sendLogBatch(logs []*logMessage) error {
 	}
 
 	return nil
-}
-
-// sendErrorBatch sends an error batch to the server
-func (b *batcher) sendErrorBatch(errors []*errorMessage) {
-	if len(errors) == 0 {
-		return
-	}
-
-	batch := &messageBatch{
-		Token:  b.token,
-		Type:   messageTypeError,
-		Errors: errors,
-	}
-
-	batchBytes, err := json.Marshal(batch)
-	if err != nil {
-		return
-	}
-
-	err = b.sendBatch(batchBytes)
-	if err != nil {
-		fmt.Printf("error sending error batch to %s: %v\n", b.endpoint, err)
-	}
 }
 
 // sendAlertBatch sends an alert batch to the server

@@ -18,7 +18,6 @@ type messageType string
 
 const (
 	messageTypeLog    messageType = "logs"
-	messageTypeError  messageType = "errors"
 	messageTypeMetric messageType = "metrics"
 	messageTypeAlert  messageType = "alerts"
 )
@@ -28,7 +27,6 @@ type messageBatch struct {
 	Token   string           `json:"token"`
 	Type    messageType      `json:"type"`
 	Logs    []*logMessage    `json:"logs,omitempty"`
-	Errors  []*errorMessage  `json:"errors,omitempty"`
 	Metrics []*metricMessage `json:"metrics,omitempty"`
 	Alerts  []*alertMessage  `json:"alerts,omitempty"`
 }
@@ -39,28 +37,6 @@ type logMessage struct {
 	Body       string            `json:"body"`
 	Level      LogLevel          `json:"level"`
 	Attributes map[string]string `json:"attributes"`
-}
-
-// errorMessage represents an error message
-type errorMessage struct {
-	Timestamp  time.Time         `json:"timestamp"`
-	Details    errorDetails      `json:"details"`
-	Location   errorLocation     `json:"location"`
-	Attributes map[string]string `json:"attributes"`
-}
-
-// errorLocation represents a location of an error
-type errorLocation struct {
-	Function string `json:"function"`
-	File     string `json:"file"`
-	Line     int    `json:"line"`
-}
-
-// errorDetails represents an error
-type errorDetails struct {
-	Type       string `json:"type"`
-	Message    string `json:"message"`
-	Stacktrace string `json:"stacktrace"`
 }
 
 // alertMessage represents an alert message

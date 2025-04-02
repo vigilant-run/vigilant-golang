@@ -14,7 +14,7 @@ type AgentConfig struct {
 	// Endpoint is the endpoint of the Vigilant server
 	Endpoint string
 
-	// Passthrough is whether to print logs, errors, metrics, and alerts to stdout
+	// Passthrough is whether to print logs, alerts, and metrics to stdout
 	Passthrough bool
 
 	// Insecure is whether to use HTTP instead of HTTPS
@@ -22,9 +22,6 @@ type AgentConfig struct {
 
 	// NoopLogs is whether to not send logs to the server
 	NoopLogs bool
-
-	// NoopErrors is whether to not send errors to the server
-	NoopErrors bool
 
 	// NoopAlerts is whether to not send alerts to the server
 	NoopAlerts bool
@@ -42,7 +39,6 @@ type AgentConfigBuilder struct {
 	passthrough *bool
 	insecure    *bool
 	noopLogs    *bool
-	noopErrors  *bool
 	noopAlerts  *bool
 	noopMetrics *bool
 }
@@ -94,12 +90,6 @@ func (b *AgentConfigBuilder) WithNoopLogs(noop bool) *AgentConfigBuilder {
 	return b
 }
 
-// WithNoopErrors sets the agent to not send errors
-func (b *AgentConfigBuilder) WithNoopErrors(noop bool) *AgentConfigBuilder {
-	b.noopErrors = &noop
-	return b
-}
-
 // WithNoopAlerts sets the agent to not send alerts
 func (b *AgentConfigBuilder) WithNoopAlerts(noop bool) *AgentConfigBuilder {
 	b.noopAlerts = &noop
@@ -122,7 +112,6 @@ func (b *AgentConfigBuilder) Build() *AgentConfig {
 		Passthrough: false,
 		Insecure:    false,
 		NoopLogs:    false,
-		NoopErrors:  false,
 		NoopAlerts:  false,
 		NoopMetrics: false,
 	}
@@ -155,10 +144,6 @@ func (b *AgentConfigBuilder) Build() *AgentConfig {
 		config.NoopLogs = *b.noopLogs
 	}
 
-	if b.noopErrors != nil {
-		config.NoopErrors = *b.noopErrors
-	}
-
 	if b.noopAlerts != nil {
 		config.NoopAlerts = *b.noopAlerts
 	}
@@ -180,7 +165,6 @@ func NewNoopAgentConfig() *AgentConfig {
 		Insecure:    false,
 		Passthrough: true,
 		NoopLogs:    true,
-		NoopErrors:  true,
 		NoopMetrics: true,
 		NoopAlerts:  true,
 	}
