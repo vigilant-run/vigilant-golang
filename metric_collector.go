@@ -14,12 +14,13 @@ type metricCollector struct {
 	interval        time.Duration
 	capturedBuckets map[time.Time]*capturedMetrics
 	sender          *metricSender
-	counterEvents   chan *counterEvent
-	gaugeEvents     chan *gaugeEvent
+	counterEvents   chan *metricEvent
+	gaugeEvents     chan *metricEvent
+	histogramEvents chan *metricEvent
 
 	mux      sync.RWMutex
 	stopChan chan struct{}
-	wg       sync.WaitGroup // Use WaitGroup for shutdown coordination
+	wg       sync.WaitGroup
 }
 
 // newMetricCollector creates a new metricCollector
@@ -38,12 +39,12 @@ func newMetricCollector(
 		interval:        interval,
 		capturedBuckets: make(map[time.Time]*capturedMetrics),
 		sender:          metricSender,
-		counterEvents:   make(chan *counterEvent, 1000),
-		gaugeEvents:     make(chan *gaugeEvent, 1000),
-
-		mux:      sync.RWMutex{},
-		stopChan: make(chan struct{}),
-		// wg is implicitly initialized
+		counterEvents:   make(chan *metricEvent, 1000),
+		gaugeEvents:     make(chan *metricEvent, 1000),
+		histogramEvents: make(chan *metricEvent, 1000),
+		mux:             sync.RWMutex{},
+		stopChan:        make(chan struct{}),
+		wg:              sync.WaitGroup{},
 	}
 }
 
@@ -62,7 +63,7 @@ func (c *metricCollector) stop() {
 
 	close(c.counterEvents)
 	close(c.gaugeEvents)
-
+	close(c.histogramEvents)
 	c.processAfterShutdown()
 
 	c.sendAfterShutdown()
@@ -71,13 +72,18 @@ func (c *metricCollector) stop() {
 }
 
 // addCounter adds a counter event to the collector
-func (c *metricCollector) addCounter(event *counterEvent) {
+func (c *metricCollector) addCounter(event *metricEvent) {
 	c.counterEvents <- event
 }
 
 // addGauge adds a gauge event to the collector
-func (c *metricCollector) addGauge(event *gaugeEvent) {
+func (c *metricCollector) addGauge(event *metricEvent) {
 	c.gaugeEvents <- event
+}
+
+// addHistogram adds a histogram event to the collector
+func (c *metricCollector) addHistogram(event *metricEvent) {
+	c.histogramEvents <- event
 }
 
 // runTicker runs the ticker for the collector
@@ -147,27 +153,20 @@ func (c *metricCollector) processEvents() {
 				continue
 			}
 			c.processGaugeEvent(event)
+		case event, ok := <-c.histogramEvents:
+			if !ok {
+				continue
+			}
+			if event == nil {
+				continue
+			}
+			c.processHistogramEvent(event)
 		}
 	}
 }
 
-// processAfterShutdown drains event channels after goroutines have stopped.
-func (c *metricCollector) processAfterShutdown() {
-	processedCounters := 0
-	for event := range c.counterEvents {
-		c.processCounterEvent(event)
-		processedCounters++
-	}
-
-	processedGauges := 0
-	for event := range c.gaugeEvents {
-		c.processGaugeEvent(event)
-		processedGauges++
-	}
-}
-
 // processCounterEvent handles processing a single counter event
-func (c *metricCollector) processCounterEvent(event *counterEvent) {
+func (c *metricCollector) processCounterEvent(event *metricEvent) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
@@ -188,7 +187,7 @@ func (c *metricCollector) processCounterEvent(event *counterEvent) {
 }
 
 // processGaugeEvent handles processing a single gauge event
-func (c *metricCollector) processGaugeEvent(event *gaugeEvent) {
+func (c *metricCollector) processGaugeEvent(event *metricEvent) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
@@ -205,6 +204,42 @@ func (c *metricCollector) processGaugeEvent(event *gaugeEvent) {
 			value: event.value,
 			tags:  event.tags,
 		}
+	}
+}
+
+// processHistogramEvent handles processing a single histogram event
+func (c *metricCollector) processHistogramEvent(event *metricEvent) {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	bucket := c.getBucket(event.timestamp)
+
+	identifier := newMetricIdentifier(event.name, event.tags)
+	identifierString := identifier.String()
+
+	if histogram, exists := bucket.histograms[identifierString]; exists {
+		histogram.values = append(histogram.values, event.value)
+	} else {
+		bucket.histograms[identifierString] = &capturedHistogram{
+			name:   event.name,
+			values: []float64{event.value},
+			tags:   event.tags,
+		}
+	}
+}
+
+// processAfterShutdown drains event channels after goroutines have stopped.
+func (c *metricCollector) processAfterShutdown() {
+	processedCounters := 0
+	for event := range c.counterEvents {
+		c.processCounterEvent(event)
+		processedCounters++
+	}
+
+	processedGauges := 0
+	for event := range c.gaugeEvents {
+		c.processGaugeEvent(event)
+		processedGauges++
 	}
 }
 
@@ -316,17 +351,26 @@ type capturedGauge struct {
 	tags  map[string]string
 }
 
+// capturedHistogram is a struct that contains the name, value, and tags of a histogram metric
+type capturedHistogram struct {
+	name   string
+	values []float64
+	tags   map[string]string
+}
+
 // capturedMetrics is a struct that contains the counters and gauges for a bucket
 type capturedMetrics struct {
-	counters map[string]*capturedCounter
-	gauges   map[string]*capturedGauge
+	counters   map[string]*capturedCounter
+	gauges     map[string]*capturedGauge
+	histograms map[string]*capturedHistogram
 }
 
 // createCapturedMetrics creates a new capturedMetrics
 func createCapturedMetrics() *capturedMetrics {
 	return &capturedMetrics{
-		counters: make(map[string]*capturedCounter),
-		gauges:   make(map[string]*capturedGauge),
+		counters:   make(map[string]*capturedCounter),
+		gauges:     make(map[string]*capturedGauge),
+		histograms: make(map[string]*capturedHistogram),
 	}
 }
 
@@ -352,6 +396,15 @@ func aggregateCapturedMetrics(
 			MetricName: gauge.name,
 			Value:      gauge.value,
 			Tags:       gauge.tags,
+		})
+	}
+
+	for _, histogram := range capturedMetrics.histograms {
+		aggregatedMetrics.histogramMetrics = append(aggregatedMetrics.histogramMetrics, &histogramMessage{
+			Timestamp:  timestamp,
+			MetricName: histogram.name,
+			Tags:       histogram.tags,
+			Values:     histogram.values,
 		})
 	}
 
