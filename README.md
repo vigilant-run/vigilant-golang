@@ -18,25 +18,19 @@ import (
 )
 
 func main() {
-  // Create the agent config
-  config := vigilant.NewAgentConfigBuilder().
+  // Create the vigilant config
+  config := vigilant.NewVigilantConfigBuilder().
     WithName("backend").
     WithToken("tk_1234567890").
     Build()
 
-  // Initialize the agent
+  // Initialize vigilant
   vigilant.Init(config)
 
   // Log a message
   vigilant.LogInfo("Hello, World!")
 
-  // Send an alert
-  vigilant.SendAlert("Something went wrong")
-
-  // Emit a metric
-  vigilant.EmitMetric("my_metric", 1.0)
-
-  // Shutdown the agent
+  // Shutdown vigilant
   vigilant.Shutdown()
 }
 ```

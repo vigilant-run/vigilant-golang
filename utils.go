@@ -40,7 +40,7 @@ func prettyPrintAttributes(attrs map[string]string) string {
 }
 
 // getEndpoint returns the endpoint for the given config
-func getEndpoint(config *AgentConfig) string {
+func getEndpoint(config *VigilantConfig) string {
 	var prefix string
 	if config.Insecure {
 		prefix = "http://"
@@ -79,15 +79,6 @@ func getLevelInt(level LogLevel) int {
 func gateNilAgent() bool {
 	if globalAgent == nil {
 		fmt.Printf("\n[ERROR] The Vigilant agent is not initialized.\n\tPlease call vigilant.Init() before using the agent.\n\tDocs: https://docs.vigilant.run/overview\n")
-		return true
-	}
-	return false
-}
-
-// gateEmptyAlertTitle checks if the title is empty
-func gateEmptyAlertTitle(title string) bool {
-	if title == "" {
-		fmt.Printf("\n[ERROR] The alert title is empty.\n\tPlease provide a non-empty title.\n\tDocs: https://docs.vigilant.run/overview\n")
 		return true
 	}
 	return false

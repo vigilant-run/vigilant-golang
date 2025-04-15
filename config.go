@@ -1,7 +1,7 @@
 package vigilant
 
-// AgentConfig is the configuration for the Vigilant agent
-type AgentConfig struct {
+// VigilantConfig is the configuration for the Vigilant agent
+type VigilantConfig struct {
 	// Name is the name of the service being monitored
 	Name string
 
@@ -14,106 +14,84 @@ type AgentConfig struct {
 	// Endpoint is the endpoint of the Vigilant server
 	Endpoint string
 
-	// Passthrough is whether to print logs, alerts, and metrics to stdout
+	// Passthrough is whether to print logs to stdout
 	Passthrough bool
 
 	// Insecure is whether to use HTTP instead of HTTPS
 	Insecure bool
 
-	// NoopLogs is whether to not send logs to the server
-	NoopLogs bool
-
-	// NoopAlerts is whether to not send alerts to the server
-	NoopAlerts bool
-
-	// NoopMetrics is whether to not send metrics to the server
-	NoopMetrics bool
+	// Noop is whether to not send logs to the server
+	Noop bool
 }
 
-// AgentConfigBuilder is the builder for the Vigilant agent configuration
-type AgentConfigBuilder struct {
+// VigilantConfigBuilder is the builder for the Vigilant agent configuration
+type VigilantConfigBuilder struct {
 	name        *string
 	level       *LogLevel
 	token       *string
 	endpoint    *string
 	passthrough *bool
 	insecure    *bool
-	noopLogs    *bool
-	noopAlerts  *bool
-	noopMetrics *bool
+	noop        *bool
 }
 
 // NewAgentConfigBuilder creates a new agent configuration builder
-func NewAgentConfigBuilder() *AgentConfigBuilder {
-	return &AgentConfigBuilder{}
+func NewAgentConfigBuilder() *VigilantConfigBuilder {
+	return &VigilantConfigBuilder{}
 }
 
 // WithName sets the name of the agent
-func (b *AgentConfigBuilder) WithName(name string) *AgentConfigBuilder {
+func (b *VigilantConfigBuilder) WithName(name string) *VigilantConfigBuilder {
 	b.name = &name
 	return b
 }
 
 // WithLevel sets the level of the agent
-func (b *AgentConfigBuilder) WithLevel(level LogLevel) *AgentConfigBuilder {
+func (b *VigilantConfigBuilder) WithLevel(level LogLevel) *VigilantConfigBuilder {
 	b.level = &level
 	return b
 }
 
 // WithToken sets the token of the agent
-func (b *AgentConfigBuilder) WithToken(token string) *AgentConfigBuilder {
+func (b *VigilantConfigBuilder) WithToken(token string) *VigilantConfigBuilder {
 	b.token = &token
 	return b
 }
 
 // WithEndpoint sets the endpoint of the agent
-func (b *AgentConfigBuilder) WithEndpoint(endpoint string) *AgentConfigBuilder {
+func (b *VigilantConfigBuilder) WithEndpoint(endpoint string) *VigilantConfigBuilder {
 	b.endpoint = &endpoint
 	return b
 }
 
 // WithPassthrough sets the passthrough of the agent
-func (b *AgentConfigBuilder) WithPassthrough(passthrough bool) *AgentConfigBuilder {
+func (b *VigilantConfigBuilder) WithPassthrough(passthrough bool) *VigilantConfigBuilder {
 	b.passthrough = &passthrough
 	return b
 }
 
 // WithInsecure sets the insecure of the agent
-func (b *AgentConfigBuilder) WithInsecure(insecure bool) *AgentConfigBuilder {
+func (b *VigilantConfigBuilder) WithInsecure(insecure bool) *VigilantConfigBuilder {
 	b.insecure = &insecure
 	return b
 }
 
-// WithNoopLogs sets the agent to not send logs
-func (b *AgentConfigBuilder) WithNoopLogs(noop bool) *AgentConfigBuilder {
-	b.noopLogs = &noop
-	return b
-}
-
-// WithNoopAlerts sets the agent to not send alerts
-func (b *AgentConfigBuilder) WithNoopAlerts(noop bool) *AgentConfigBuilder {
-	b.noopAlerts = &noop
-	return b
-}
-
-// WithNoopMetrics sets the agent to not send metrics
-func (b *AgentConfigBuilder) WithNoopMetrics(noop bool) *AgentConfigBuilder {
-	b.noopMetrics = &noop
+// WithNoop sets the agent to not send logs
+func (b *VigilantConfigBuilder) WithNoop(noop bool) *VigilantConfigBuilder {
+	b.noop = &noop
 	return b
 }
 
 // Build builds the agent configuration
-func (b *AgentConfigBuilder) Build() *AgentConfig {
-	config := &AgentConfig{
+func (b *VigilantConfigBuilder) Build() *VigilantConfig {
+	config := &VigilantConfig{
 		Name:        "server-name",
 		Level:       LEVEL_TRACE,
 		Token:       "tk_1234567890",
 		Endpoint:    "ingress.vigilant.run",
 		Passthrough: false,
 		Insecure:    false,
-		NoopLogs:    false,
-		NoopAlerts:  false,
-		NoopMetrics: false,
+		Noop:        false,
 	}
 
 	if b.name != nil {
@@ -140,32 +118,22 @@ func (b *AgentConfigBuilder) Build() *AgentConfig {
 		config.Insecure = *b.insecure
 	}
 
-	if b.noopLogs != nil {
-		config.NoopLogs = *b.noopLogs
-	}
-
-	if b.noopAlerts != nil {
-		config.NoopAlerts = *b.noopAlerts
-	}
-
-	if b.noopMetrics != nil {
-		config.NoopMetrics = *b.noopMetrics
+	if b.noop != nil {
+		config.Noop = *b.noop
 	}
 
 	return config
 }
 
 // NewNoopAgentConfig creates a new noop agent config, this is useful for testing
-func NewNoopAgentConfig() *AgentConfig {
-	return &AgentConfig{
+func NewNoopAgentConfig() *VigilantConfig {
+	return &VigilantConfig{
 		Name:        "server-name",
 		Level:       LEVEL_TRACE,
 		Token:       "tk_1234567890",
 		Endpoint:    "ingress.vigilant.run",
 		Insecure:    false,
 		Passthrough: true,
-		NoopLogs:    true,
-		NoopMetrics: true,
-		NoopAlerts:  true,
+		Noop:        true,
 	}
 }

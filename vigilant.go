@@ -11,11 +11,11 @@ var globalAgent *agent
 
 // Init initializes the agent, it should be called once when the program is starting
 // Before calling this, all other Vigilant functions will be noops
-func Init(config *AgentConfig) {
+func Init(config *VigilantConfig) {
 	if globalAgent != nil {
 		return
 	}
-	globalAgent = newAgent(config)
+	globalAgent = newVigilant(config)
 	globalAgent.start()
 }
 
@@ -28,21 +28,19 @@ func Shutdown() error {
 }
 
 // agent is the internal representation of the agent
-// it handles the sending of logs, alerts, and metrics to Vigilant
+// it handles the sending of logs
 type agent struct {
 	name        string
 	level       LogLevel
 	token       string
 	passthrough bool
-	noopLogs    bool
-	noopAlerts  bool
-	noopMetrics bool
+	noop        bool
 
 	batcher *batcher
 }
 
-// newAgent creates a new agent from the given config
-func newAgent(config *AgentConfig) *agent {
+// newVigilant creates a new agent from the given config
+func newVigilant(config *VigilantConfig) *agent {
 	batcher := newBatcher(
 		config.Token,
 		getEndpoint(config),
@@ -53,16 +51,14 @@ func newAgent(config *AgentConfig) *agent {
 		level:       config.Level,
 		token:       config.Token,
 		passthrough: config.Passthrough,
-		noopLogs:    config.NoopLogs,
-		noopAlerts:  config.NoopAlerts,
-		noopMetrics: config.NoopMetrics,
+		noop:        config.Noop,
 		batcher:     batcher,
 	}
 }
 
 // start starts the agent
 func (a *agent) start() {
-	if a.noopLogs && a.noopAlerts && a.noopMetrics {
+	if a.noop {
 		return
 	}
 	a.batcher.start()
@@ -90,7 +86,7 @@ func (a *agent) sendLog(
 		writeLogPassthrough(level, message, updatedAttrs)
 	}
 
-	if a.noopLogs {
+	if a.noop {
 		return
 	}
 
@@ -102,56 +98,6 @@ func (a *agent) sendLog(
 	}
 
 	a.batcher.addLog(logMessage)
-}
-
-// sendAlert sends an alert to the agent
-func (a *agent) sendAlert(
-	title string,
-	attrs map[string]string,
-) {
-	updatedAttrs := a.withBaseAttributes(attrs)
-
-	if a.passthrough {
-		writeAlertPassthrough(title, updatedAttrs)
-	}
-
-	if a.noopAlerts {
-		return
-	}
-
-	alertMessage := &alertMessage{
-		Timestamp:  time.Now(),
-		Title:      title,
-		Attributes: updatedAttrs,
-	}
-
-	a.batcher.addAlert(alertMessage)
-}
-
-// sendMetric sends a metric to the agent
-func (a *agent) sendMetric(
-	name string,
-	value float64,
-	attrs map[string]string,
-) {
-	updatedAttrs := a.withBaseAttributes(attrs)
-
-	if a.passthrough {
-		writeMetricPassthrough(name, value, updatedAttrs)
-	}
-
-	if a.noopMetrics {
-		return
-	}
-
-	metricMessage := &metricMessage{
-		Timestamp:  time.Now(),
-		Name:       name,
-		Value:      value,
-		Attributes: updatedAttrs,
-	}
-
-	a.batcher.addMetric(metricMessage)
 }
 
 // withBaseAttributes adds the service name attribute to the given attributes
