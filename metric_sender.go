@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 )
@@ -80,9 +81,23 @@ func (s *metricSender) stop() {
 func (s *metricSender) sendMetrics(
 	metrics *aggregatedMetrics,
 ) error {
-	if len(metrics.counterMetrics) == 0 && len(metrics.gaugeMetrics) == 0 {
+	counterCount := len(metrics.counterMetrics)
+	gaugeCount := len(metrics.gaugeMetrics)
+
+	if counterCount == 0 && gaugeCount == 0 {
 		return nil
 	}
+
+	// Log the metrics being sent
+	var batchTimestamp string
+	if counterCount > 0 {
+		batchTimestamp = metrics.counterMetrics[0].Timestamp.String()
+	} else if gaugeCount > 0 {
+		batchTimestamp = metrics.gaugeMetrics[0].Timestamp.String()
+	} else {
+		batchTimestamp = "[no timestamp available]" // Should not happen if counts > 0
+	}
+	log.Printf("Sender: Preparing to send batch for interval %s - Counters: %d, Gauges: %d", batchTimestamp, counterCount, gaugeCount)
 
 	batch := &messageBatch{
 		Token: s.token,
