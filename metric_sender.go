@@ -3,7 +3,6 @@ package vigilant
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -59,22 +58,32 @@ func (s *metricSender) runMetricSender() {
 	for {
 		select {
 		case <-s.batchStop:
+			log.Println("Sender: Received stop signal. Exiting runMetricSender.")
 			return
 		case aggs := <-s.aggsQueue:
+			if aggs == nil {
+				log.Println("Sender: Received nil aggregation from queue.")
+				continue
+			}
 			if len(aggs.counterMetrics) > 0 || len(aggs.gaugeMetrics) > 0 {
 				if err := s.sendMetrics(aggs); err != nil {
-					fmt.Printf("error sending counter batch: %v\n", err)
+					log.Printf("Sender: Error sending metrics batch: %v\n", err)
 				}
+			} else {
+				log.Println("Sender: Received empty aggregation batch.")
 			}
-			return
 		}
 	}
 }
 
 // stop stops the sender
 func (s *metricSender) stop() {
+	log.Println("Sender: Stopping...")
 	close(s.batchStop)
+	log.Println("Sender: Waiting for sender goroutine to finish...")
 	s.wg.Wait()
+	log.Println("Sender: Goroutine finished.")
+	log.Println("Sender: Stopped.")
 }
 
 // sendMetrics sends a counter batch to the server
