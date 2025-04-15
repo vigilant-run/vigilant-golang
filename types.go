@@ -45,10 +45,19 @@ type gaugeMessage struct {
 	Tags       map[string]string `json:"tags"`
 }
 
+// histogramMessage represents a histogram metric message
+type histogramMessage struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	MetricName string            `json:"metric_name"`
+	Tags       map[string]string `json:"tags"`
+	Values     []float64         `json:"values"`
+}
+
 // aggregatedMetrics represents a collection of counter and gauge metrics
 type aggregatedMetrics struct {
-	counterMetrics []*counterMessage
-	gaugeMetrics   []*gaugeMessage
+	counterMetrics   []*counterMessage
+	gaugeMetrics     []*gaugeMessage
+	histogramMetrics []*histogramMessage
 }
 
 // newAggregatedMetrics creates a new aggregatedMetrics
@@ -60,15 +69,7 @@ func newAggregatedMetrics() *aggregatedMetrics {
 }
 
 // internal counter event
-type counterEvent struct {
-	timestamp time.Time
-	name      string
-	value     float64
-	tags      map[string]string
-}
-
-// internal gauge event
-type gaugeEvent struct {
+type metricEvent struct {
 	timestamp time.Time
 	name      string
 	value     float64

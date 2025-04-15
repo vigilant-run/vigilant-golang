@@ -120,7 +120,7 @@ func (a *agent) captureCounter(
 		return
 	}
 
-	event := &counterEvent{
+	event := &metricEvent{
 		timestamp: time.Now(),
 		name:      name,
 		value:     value,
@@ -140,7 +140,7 @@ func (a *agent) captureGauge(
 		return
 	}
 
-	event := &gaugeEvent{
+	event := &metricEvent{
 		timestamp: time.Now(),
 		name:      name,
 		value:     value,
@@ -148,6 +148,26 @@ func (a *agent) captureGauge(
 	}
 
 	a.metricCollector.addGauge(event)
+}
+
+// captureHistogram captures a histogram metric
+func (a *agent) captureHistogram(
+	name string,
+	value float64,
+	tags map[string]string,
+) {
+	if a.noop {
+		return
+	}
+
+	event := &metricEvent{
+		timestamp: time.Now(),
+		name:      name,
+		value:     value,
+		tags:      tags,
+	}
+
+	a.metricCollector.addHistogram(event)
 }
 
 // withBaseAttributes adds the service name attribute to the given attributes
