@@ -51,6 +51,7 @@ func newVigilant(config *VigilantConfig) *agent {
 		time.Minute,
 		config.Token,
 		getEndpoint(config),
+		config.Name,
 		&http.Client{},
 	)
 	return &agent{
