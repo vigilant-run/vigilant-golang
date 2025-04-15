@@ -1,11 +1,11 @@
 # Vigilant Go Agent
 
-This is the Go Agent for the Vigilant platform.
+This is the Go SDK for Vigilant.
 
 ## Installation
 
 ```bash
-go get github.com/vigilant-run/vigilant-golang
+go get github.com/vigilant-run/vigilant-golang/v2
 ```
 
 ## Usage
