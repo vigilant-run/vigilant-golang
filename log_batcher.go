@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-// batcher is a struct that contains the queues for the logs
+// logBatcher is a struct that contains the queues for the logs
 // it also contains the http client and the wait group
-// when a batch is ready, the batcher will send it to the server
-type batcher struct {
+// when a batch is ready, the logBatcher will send it to the server
+type logBatcher struct {
 	token    string
 	endpoint string
 
@@ -24,13 +24,13 @@ type batcher struct {
 	wg        sync.WaitGroup
 }
 
-// newBatcher creates a new batcher
-func newBatcher(
+// newLogBatcher creates a new logBatcher
+func newLogBatcher(
 	token string,
 	endpoint string,
 	httpClient *http.Client,
-) *batcher {
-	return &batcher{
+) *logBatcher {
+	return &logBatcher{
 		token:     token,
 		endpoint:  endpoint,
 		logQueue:  make(chan *logMessage, 1000),
@@ -40,13 +40,13 @@ func newBatcher(
 }
 
 // start starts the batcher
-func (b *batcher) start() {
+func (b *logBatcher) start() {
 	b.wg.Add(1)
 	go b.runLogBatcher()
 }
 
 // addLog adds a log to the batcher's queue
-func (b *batcher) addLog(message *logMessage) {
+func (b *logBatcher) addLog(message *logMessage) {
 	if message == nil {
 		return
 	}
@@ -54,7 +54,7 @@ func (b *batcher) addLog(message *logMessage) {
 }
 
 // runLogBatcher runs the log batcher
-func (b *batcher) runLogBatcher() {
+func (b *logBatcher) runLogBatcher() {
 	defer b.wg.Done()
 
 	const maxBatchSize = 100
@@ -94,13 +94,13 @@ func (b *batcher) runLogBatcher() {
 }
 
 // stop stops the batcher
-func (b *batcher) stop() {
+func (b *logBatcher) stop() {
 	close(b.batchStop)
 	b.wg.Wait()
 }
 
 // sendLogBatch sends a log batch to the server
-func (b *batcher) sendLogBatch(logs []*logMessage) error {
+func (b *logBatcher) sendLogBatch(logs []*logMessage) error {
 	if len(logs) == 0 {
 		return nil
 	}
@@ -124,7 +124,7 @@ func (b *batcher) sendLogBatch(logs []*logMessage) error {
 }
 
 // sendBatch sends a batch to the server
-func (b *batcher) sendBatch(batchBytes []byte) error {
+func (b *logBatcher) sendBatch(batchBytes []byte) error {
 	req, err := http.NewRequest("POST", b.endpoint, bytes.NewBuffer(batchBytes))
 	if err != nil {
 		return err

@@ -36,23 +36,31 @@ type agent struct {
 	passthrough bool
 	noop        bool
 
-	batcher *batcher
+	logBatcher      *logBatcher
+	metricCollector *metricCollector
 }
 
 // newVigilant creates a new agent from the given config
 func newVigilant(config *VigilantConfig) *agent {
-	batcher := newBatcher(
+	logBatcher := newLogBatcher(
+		config.Token,
+		getEndpoint(config),
+		&http.Client{},
+	)
+	metricCollector := newMetricCollector(
+		time.Minute,
 		config.Token,
 		getEndpoint(config),
 		&http.Client{},
 	)
 	return &agent{
-		name:        config.Name,
-		level:       config.Level,
-		token:       config.Token,
-		passthrough: config.Passthrough,
-		noop:        config.Noop,
-		batcher:     batcher,
+		name:            config.Name,
+		level:           config.Level,
+		token:           config.Token,
+		passthrough:     config.Passthrough,
+		noop:            config.Noop,
+		logBatcher:      logBatcher,
+		metricCollector: metricCollector,
 	}
 }
 
@@ -61,17 +69,19 @@ func (a *agent) start() {
 	if a.noop {
 		return
 	}
-	a.batcher.start()
+	a.logBatcher.start()
+	a.metricCollector.start()
 }
 
 // shutdown shuts down the agent
 func (a *agent) shutdown() error {
-	a.batcher.stop()
+	a.logBatcher.stop()
+	a.metricCollector.stop()
 	return nil
 }
 
-// sendLog sends a log message to the agent
-func (a *agent) sendLog(
+// captureLog captures a log message
+func (a *agent) captureLog(
 	level LogLevel,
 	message string,
 	attrs map[string]string,
@@ -97,7 +107,47 @@ func (a *agent) sendLog(
 		Attributes: updatedAttrs,
 	}
 
-	a.batcher.addLog(logMessage)
+	a.logBatcher.addLog(logMessage)
+}
+
+// captureCounter captures a counter metric
+func (a *agent) captureCounter(
+	name string,
+	value int64,
+	tags map[string]string,
+) {
+	if a.noop {
+		return
+	}
+
+	event := &counterEvent{
+		timestamp: time.Now(),
+		name:      name,
+		value:     value,
+		tags:      tags,
+	}
+
+	a.metricCollector.addCounter(event)
+}
+
+// captureGauge captures a gauge metric
+func (a *agent) captureGauge(
+	name string,
+	value float64,
+	tags map[string]string,
+) {
+	if a.noop {
+		return
+	}
+
+	event := &gaugeEvent{
+		timestamp: time.Now(),
+		name:      name,
+		value:     value,
+		tags:      tags,
+	}
+
+	a.metricCollector.addGauge(event)
 }
 
 // withBaseAttributes adds the service name attribute to the given attributes
