@@ -263,7 +263,7 @@ func (m *metricIdentifier) String() string {
 // capturedCounter is a struct that contains the name, value, and tags of a counter metric
 type capturedCounter struct {
 	name  string
-	value int64
+	value float64
 	tags  map[string]string
 }
 

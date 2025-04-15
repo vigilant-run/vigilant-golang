@@ -113,7 +113,7 @@ func (a *agent) captureLog(
 // captureCounter captures a counter metric
 func (a *agent) captureCounter(
 	name string,
-	value int64,
+	value float64,
 	tags map[string]string,
 ) {
 	if a.noop {

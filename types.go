@@ -33,7 +33,7 @@ type logMessage struct {
 type counterMessage struct {
 	Timestamp  time.Time         `json:"timestamp"`
 	MetricName string            `json:"metric_name"`
-	Value      int64             `json:"value"`
+	Value      float64           `json:"value"`
 	Tags       map[string]string `json:"tags"`
 }
 
@@ -63,7 +63,7 @@ func newAggregatedMetrics() *aggregatedMetrics {
 type counterEvent struct {
 	timestamp time.Time
 	name      string
-	value     int64
+	value     float64
 	tags      map[string]string
 }
 

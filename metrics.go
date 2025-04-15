@@ -1,7 +1,7 @@
 package vigilant
 
 // Counter captures a counter metric
-func Counter(name string, value int64, tags map[string]string) {
+func Counter(name string, value float64, tags map[string]string) {
 	if gateNilAgent() {
 		return
 	}
