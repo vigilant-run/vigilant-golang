@@ -1,7 +1,6 @@
 package vigilant
 
 import (
-	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -50,37 +49,25 @@ func newMetricCollector(
 
 // start starts the collector, the sender, and the event processor
 func (c *metricCollector) start() {
-	log.Println("Starting metric collector...")
 	c.wg.Add(2)
 	go c.sender.start()
 	go c.processEvents()
 	go c.runTicker()
-	log.Println("Metric collector started.")
 }
 
 // stop stops the collector and the sender using simplified shutdown logic
 func (c *metricCollector) stop() {
-	log.Println("Stopping metric collector...")
 	close(c.stopChan)
-	log.Println("Waiting for collector goroutines to finish...")
 	c.wg.Wait()
-	log.Println("Collector goroutines finished.")
 
-	log.Println("Closing event channels...")
 	close(c.counterEvents)
 	close(c.gaugeEvents)
-	log.Println("Event channels closed.")
 
-	log.Println("Processing remaining events after shutdown...")
 	c.processAfterShutdown()
-	log.Println("Finished processing remaining events.")
 
-	log.Println("Sending remaining metrics after shutdown...")
 	c.sendAfterShutdown()
-	log.Println("Finished sending remaining metrics.")
 
 	c.sender.stop()
-	log.Println("Metric collector stopped.")
 }
 
 // addCounter adds a counter event to the collector
@@ -96,18 +83,15 @@ func (c *metricCollector) addGauge(event *gaugeEvent) {
 // runTicker runs the ticker for the collector
 func (c *metricCollector) runTicker() {
 	defer c.wg.Done()
-	log.Println("Starting collector ticker...")
 	now := time.Now()
 	nextInterval := now.Truncate(c.interval).Add(c.interval)
 	firstTriggerTime := nextInterval.Add(1 * time.Second)
 
 	if firstTriggerTime.Before(now) {
-		log.Printf("Adjusting first trigger time from %v", firstTriggerTime)
 		firstTriggerTime = nextInterval.Add(c.interval).Add(1 * time.Second)
 	}
 
 	durationUntilFirstTrigger := firstTriggerTime.Sub(now)
-	log.Printf("First tick scheduled for %v (in %v)", firstTriggerTime, durationUntilFirstTrigger)
 	timer := time.NewTimer(durationUntilFirstTrigger)
 	defer timer.Stop()
 
@@ -115,30 +99,24 @@ func (c *metricCollector) runTicker() {
 	defer func() {
 		if ticker != nil {
 			ticker.Stop()
-			log.Println("Ticker stopped.")
 		}
 	}()
 
 	for {
 		select {
 		case <-c.stopChan:
-			log.Println("Ticker received stop signal. Exiting.")
 			return
 		case firstTickTime := <-timer.C:
 			intervalToProcess := firstTickTime.Truncate(c.interval).Add(-c.interval)
-			log.Printf("Initial timer ticked at %v. Processing interval %v", firstTickTime, intervalToProcess)
 			c.sendMetricsForInterval(intervalToProcess)
 
-			log.Printf("Starting periodic ticker with interval %v", c.interval)
 			ticker = time.NewTicker(c.interval)
 			for {
 				select {
 				case <-c.stopChan:
-					log.Println("Periodic ticker received stop signal during inner loop. Exiting.")
 					return
 				case tickTime := <-ticker.C:
 					intervalToProcess = tickTime.Truncate(c.interval).Add(-c.interval)
-					log.Printf("Periodic ticker ticked at %v. Processing interval %v", tickTime, intervalToProcess)
 					c.sendMetricsForInterval(intervalToProcess)
 				}
 			}
@@ -148,30 +126,24 @@ func (c *metricCollector) runTicker() {
 
 // processEvents reads metric events from the channel and updates the buckets.
 func (c *metricCollector) processEvents() {
-	log.Println("Starting event processor...")
 	defer c.wg.Done()
 	for {
 		select {
 		case <-c.stopChan:
-			log.Println("Event processor received stop signal. Exiting.")
 			return
 		case event, ok := <-c.counterEvents:
 			if !ok {
-				log.Println("Counter events channel closed.")
 				continue
 			}
 			if event == nil {
-				log.Println("Received nil counter event.")
 				continue
 			}
 			c.processCounterEvent(event)
 		case event, ok := <-c.gaugeEvents:
 			if !ok {
-				log.Println("Gauge events channel closed.")
 				continue
 			}
 			if event == nil {
-				log.Println("Received nil gauge event.")
 				continue
 			}
 			c.processGaugeEvent(event)
@@ -181,21 +153,17 @@ func (c *metricCollector) processEvents() {
 
 // processAfterShutdown drains event channels after goroutines have stopped.
 func (c *metricCollector) processAfterShutdown() {
-	log.Println("Processing remaining counter events...")
 	processedCounters := 0
 	for event := range c.counterEvents {
 		c.processCounterEvent(event)
 		processedCounters++
 	}
-	log.Printf("Processed %d remaining counter events.", processedCounters)
 
-	log.Println("Processing remaining gauge events...")
 	processedGauges := 0
 	for event := range c.gaugeEvents {
 		c.processGaugeEvent(event)
 		processedGauges++
 	}
-	log.Printf("Processed %d remaining gauge events.", processedGauges)
 }
 
 // processCounterEvent handles processing a single counter event
@@ -242,48 +210,25 @@ func (c *metricCollector) processGaugeEvent(event *gaugeEvent) {
 
 // sendMetricsForInterval sends the metrics for the interval
 func (c *metricCollector) sendMetricsForInterval(intervalStart time.Time) {
-	log.Printf("Attempting to send metrics for interval starting %v", intervalStart)
-
 	var metricsToSend *aggregatedMetrics
 	var counterCount, gaugeCount int
-	processedBucket := false // Track if we found and processed the bucket
 
 	c.mux.Lock()
 	bucket, ok := c.capturedBuckets[intervalStart]
-	if ok && bucket != nil {
-		processedBucket = true // Mark as processed
-		// Only aggregate if there's data
-		if len(bucket.counters) > 0 || len(bucket.gauges) > 0 {
-			log.Printf("Aggregating metrics for interval %v.", intervalStart)
-			metricsToSend = aggregateCapturedMetrics(intervalStart, bucket)
-			counterCount = len(metricsToSend.counterMetrics)
-			gaugeCount = len(metricsToSend.gaugeMetrics)
+	if ok && bucket != nil && (len(bucket.counters) > 0 || len(bucket.gauges) > 0) {
+		metricsToSend = aggregateCapturedMetrics(intervalStart, bucket)
+		counterCount = len(metricsToSend.counterMetrics)
+		gaugeCount = len(metricsToSend.gaugeMetrics)
 
-			// Clear the bucket now that we've aggregated it.
-			// Late metrics for this interval can still land here via getBucket,
-			// but they won't be sent in this cycle.
-			log.Printf("Clearing processed bucket for interval %v.", intervalStart)
-			bucket.counters = make(map[string]*capturedCounter)
-			bucket.gauges = make(map[string]*capturedGauge)
-		} else {
-			log.Printf("Bucket for interval %v exists but is empty.", intervalStart)
-		}
-	} else {
-		log.Printf("No bucket found for interval %v. It might have been cleaned up or never created.", intervalStart)
+		bucket.counters = make(map[string]*capturedCounter)
+		bucket.gauges = make(map[string]*capturedGauge)
 	}
-	c.mux.Unlock() // Unlock after potential aggregation and clearing
+	c.mux.Unlock()
 
 	if metricsToSend != nil && (counterCount > 0 || gaugeCount > 0) {
-		log.Printf("Sending %d counters and %d gauges for interval %v.", counterCount, gaugeCount, intervalStart)
 		c.sender.sendAggregatedMetrics(metricsToSend)
-	} else if processedBucket {
-		log.Printf("No metrics aggregated to send for interval %v (bucket was empty or cleared).", intervalStart)
-	} else {
-		log.Printf("No metrics bucket processed or sent for interval %v.", intervalStart)
 	}
 
-	// Cleanup based on the interval we just processed.
-	// This will delete buckets older than intervalStart - c.interval
 	c.cleanupOldBuckets(intervalStart)
 }
 
@@ -293,14 +238,8 @@ func (c *metricCollector) cleanupOldBuckets(currentIntervalJustProcessed time.Ti
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
-	// Delete buckets whose start time is strictly before the *previous* interval.
-	// e.g., if we just processed 18:55:00, the threshold is 18:54:00. Buckets < 18:54:00 are deleted.
-	// The bucket for 18:54:00 and the just-cleared 18:55:00 bucket remain.
 	cleanupThreshold := currentIntervalJustProcessed.Add(-1 * c.interval)
-	log.Printf("Cleaning up buckets older than %v", cleanupThreshold)
-
 	toDelete := []time.Time{}
-	// Check only keys first to avoid holding lock while iterating potentially large buckets
 	for ts := range c.capturedBuckets {
 		if ts.Before(cleanupThreshold) {
 			toDelete = append(toDelete, ts)
@@ -308,25 +247,14 @@ func (c *metricCollector) cleanupOldBuckets(currentIntervalJustProcessed time.Ti
 	}
 
 	if len(toDelete) > 0 {
-		log.Printf("Cleaning up %d old buckets (older than %v): %v", len(toDelete), cleanupThreshold, toDelete)
 		for _, ts := range toDelete {
-			// Log if deleting a non-empty bucket (containing late/stranded metrics)
-			bucketToDelete := c.capturedBuckets[ts]
-			if bucketToDelete != nil && (len(bucketToDelete.counters) > 0 || len(bucketToDelete.gauges) > 0) {
-				log.Printf("Warning: Deleting old bucket %v which contained %d counters and %d gauges (likely late metrics).",
-					ts, len(bucketToDelete.counters), len(bucketToDelete.gauges))
-			}
 			delete(c.capturedBuckets, ts)
 		}
-	} else {
-		log.Printf("No buckets found older than %v to clean up.", cleanupThreshold)
 	}
 }
 
 // sendAfterShutdown sends all metrics currently held in buckets.
 func (c *metricCollector) sendAfterShutdown() {
-	log.Println("Attempting to send remaining metrics after shutdown...")
-
 	bucketsToSend := make(map[time.Time]*capturedMetrics)
 
 	c.mux.Lock()
@@ -338,15 +266,10 @@ func (c *metricCollector) sendAfterShutdown() {
 	c.capturedBuckets = make(map[time.Time]*capturedMetrics)
 	c.mux.Unlock()
 
-	log.Printf("Found %d buckets with data to send after shutdown.", len(bucketsToSend))
-
 	for timestamp, bucket := range bucketsToSend {
-		log.Printf("Aggregating and sending metrics for shutdown bucket %v.", timestamp)
 		aggregatedMetrics := aggregateCapturedMetrics(timestamp, bucket)
-		log.Printf("Sending %d counters and %d gauges for shutdown interval %v.", len(aggregatedMetrics.counterMetrics), len(aggregatedMetrics.gaugeMetrics), timestamp)
 		c.sender.sendAggregatedMetrics(aggregatedMetrics)
 	}
-	log.Println("Finished sending remaining metrics after shutdown.")
 }
 
 // getBucket gets the bucket for the current time
@@ -354,7 +277,6 @@ func (c *metricCollector) getBucket(now time.Time) *capturedMetrics {
 	floored := now.Truncate(c.interval)
 	bucket, ok := c.capturedBuckets[floored]
 	if !ok {
-		log.Printf("Creating new metrics bucket for interval %v", floored)
 		bucket = createCapturedMetrics()
 		c.capturedBuckets[floored] = bucket
 	}

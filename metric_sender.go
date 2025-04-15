@@ -3,7 +3,6 @@ package vigilant
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -58,19 +57,13 @@ func (s *metricSender) runMetricSender() {
 	for {
 		select {
 		case <-s.batchStop:
-			log.Println("Sender: Received stop signal. Exiting runMetricSender.")
 			return
 		case aggs := <-s.aggsQueue:
 			if aggs == nil {
-				log.Println("Sender: Received nil aggregation from queue.")
 				continue
 			}
 			if len(aggs.counterMetrics) > 0 || len(aggs.gaugeMetrics) > 0 {
-				if err := s.sendMetrics(aggs); err != nil {
-					log.Printf("Sender: Error sending metrics batch: %v\n", err)
-				}
-			} else {
-				log.Println("Sender: Received empty aggregation batch.")
+				s.sendMetrics(aggs)
 			}
 		}
 	}
@@ -78,12 +71,8 @@ func (s *metricSender) runMetricSender() {
 
 // stop stops the sender
 func (s *metricSender) stop() {
-	log.Println("Sender: Stopping...")
 	close(s.batchStop)
-	log.Println("Sender: Waiting for sender goroutine to finish...")
 	s.wg.Wait()
-	log.Println("Sender: Goroutine finished.")
-	log.Println("Sender: Stopped.")
 }
 
 // sendMetrics sends a counter batch to the server
@@ -96,17 +85,6 @@ func (s *metricSender) sendMetrics(
 	if counterCount == 0 && gaugeCount == 0 {
 		return nil
 	}
-
-	// Log the metrics being sent
-	var batchTimestamp string
-	if counterCount > 0 {
-		batchTimestamp = metrics.counterMetrics[0].Timestamp.String()
-	} else if gaugeCount > 0 {
-		batchTimestamp = metrics.gaugeMetrics[0].Timestamp.String()
-	} else {
-		batchTimestamp = "[no timestamp available]" // Should not happen if counts > 0
-	}
-	log.Printf("Sender: Preparing to send batch for interval %s - Counters: %d, Gauges: %d", batchTimestamp, counterCount, gaugeCount)
 
 	batch := &messageBatch{
 		Token: s.token,
