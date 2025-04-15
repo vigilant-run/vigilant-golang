@@ -62,7 +62,7 @@ func (s *metricSender) runMetricSender() {
 			if aggs == nil {
 				continue
 			}
-			if len(aggs.counterMetrics) > 0 || len(aggs.gaugeMetrics) > 0 {
+			if len(aggs.counterMetrics) > 0 || len(aggs.gaugeMetrics) > 0 || len(aggs.histogramMetrics) > 0 {
 				s.sendMetrics(aggs)
 			}
 		}
@@ -81,8 +81,9 @@ func (s *metricSender) sendMetrics(
 ) error {
 	counterCount := len(metrics.counterMetrics)
 	gaugeCount := len(metrics.gaugeMetrics)
+	histogramCount := len(metrics.histogramMetrics)
 
-	if counterCount == 0 && gaugeCount == 0 {
+	if counterCount == 0 && gaugeCount == 0 && histogramCount == 0 {
 		return nil
 	}
 
@@ -92,6 +93,7 @@ func (s *metricSender) sendMetrics(
 
 	batch.MetricsCounters = metrics.counterMetrics
 	batch.MetricsGauges = metrics.gaugeMetrics
+	batch.MetricsHistograms = metrics.histogramMetrics
 
 	batchBytes, err := json.Marshal(batch)
 	if err != nil {

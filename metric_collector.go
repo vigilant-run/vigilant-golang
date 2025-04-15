@@ -180,8 +180,8 @@ func (c *metricCollector) processCounterEvent(event *metricEvent) {
 	} else {
 		bucket.counters[identifierString] = &capturedCounter{
 			name:  event.name,
-			value: event.value,
 			tags:  event.tags,
+			value: event.value,
 		}
 	}
 }
@@ -201,8 +201,8 @@ func (c *metricCollector) processGaugeEvent(event *metricEvent) {
 	} else {
 		bucket.gauges[identifierString] = &capturedGauge{
 			name:  event.name,
-			value: event.value,
 			tags:  event.tags,
+			value: event.value,
 		}
 	}
 }
@@ -222,8 +222,8 @@ func (c *metricCollector) processHistogramEvent(event *metricEvent) {
 	} else {
 		bucket.histograms[identifierString] = &capturedHistogram{
 			name:   event.name,
-			values: []float64{event.value},
 			tags:   event.tags,
+			values: []float64{event.value},
 		}
 	}
 }

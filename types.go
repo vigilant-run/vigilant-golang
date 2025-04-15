@@ -15,10 +15,11 @@ const (
 
 // messageBatch represents a batch of logs
 type messageBatch struct {
-	Token           string            `json:"token"`
-	Logs            []*logMessage     `json:"logs,omitempty"`
-	MetricsCounters []*counterMessage `json:"metrics_counters,omitempty"`
-	MetricsGauges   []*gaugeMessage   `json:"metrics_gauges,omitempty"`
+	Token             string              `json:"token"`
+	Logs              []*logMessage       `json:"logs,omitempty"`
+	MetricsCounters   []*counterMessage   `json:"metrics_counters,omitempty"`
+	MetricsGauges     []*gaugeMessage     `json:"metrics_gauges,omitempty"`
+	MetricsHistograms []*histogramMessage `json:"metrics_histograms,omitempty"`
 }
 
 // logMessage represents a log message
