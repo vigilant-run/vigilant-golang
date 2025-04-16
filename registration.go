@@ -6,11 +6,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+const (
+	registrationEndpoint = "/api/registration"
+	heartbeatEndpoint    = "/api/registration/heartbeat"
 )
 
 type registrationHandler struct {
@@ -48,17 +54,21 @@ func newRegistrationHandler(
 }
 
 func (h *registrationHandler) start() {
+	log.Printf("Starting registration handler for service %s", h.serviceName)
 	h.wg.Add(1)
 	go h.runRegistration()
 }
 
 func (h *registrationHandler) stop() {
+	log.Printf("Stopping registration handler for service %s", h.serviceName)
 	close(h.doneChan)
 	h.wg.Wait()
 	h.deregister()
+	log.Printf("Registration handler for service %s stopped", h.serviceName)
 }
 
 func (h *registrationHandler) getServiceInstance() (string, error) {
+	log.Printf("Getting service instance for service %s", h.serviceName)
 	h.mux.RLock()
 	defer h.mux.RUnlock()
 
@@ -70,10 +80,12 @@ func (h *registrationHandler) getServiceInstance() (string, error) {
 }
 
 func (h *registrationHandler) waitForRegistration(ctx context.Context) error {
+	log.Printf("Waiting for registration for service %s", h.serviceName)
 	h.mux.RLock()
 	registered := h.registered
 	h.mux.RUnlock()
 	if registered {
+		log.Printf("Registration for service %s already completed", h.serviceName)
 		return nil
 	}
 
@@ -86,6 +98,7 @@ func (h *registrationHandler) waitForRegistration(ctx context.Context) error {
 }
 
 func (h *registrationHandler) runRegistration() {
+	log.Printf("Running registration for service %s", h.serviceName)
 	defer h.wg.Done()
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -95,21 +108,26 @@ func (h *registrationHandler) runRegistration() {
 		select {
 		case <-ticker.C:
 			if !h.registered {
+				log.Printf("Registering service %s", h.serviceName)
 				var err error
 				for range [10]int{} {
 					err = h.register()
 					if err == nil {
+						log.Printf("Registration for service %s completed", h.serviceName)
 						break
 					}
 					time.Sleep(50 * time.Millisecond)
 				}
 				if err != nil {
+					log.Printf("Error registering service %s: %v", h.serviceName, err)
 					return
 				}
 			} else {
+				log.Printf("Heartbeating service %s", h.serviceName)
 				h.heartbeat()
 			}
 		case <-h.doneChan:
+			log.Printf("Stopping registration handler for service %s", h.serviceName)
 			return
 		}
 	}
@@ -175,7 +193,7 @@ func (h *registrationHandler) sendRegistrationRequest() (*registrationResponse, 
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", h.endpoint, bytes.NewBuffer(requestBytes))
+	req, err := http.NewRequest("POST", h.endpoint+registrationEndpoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +229,7 @@ func (h *registrationHandler) sendDeregistrationRequest() error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", h.endpoint, bytes.NewBuffer(requestBytes))
+	req, err := http.NewRequest("DELETE", h.endpoint+registrationEndpoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
 		return err
 	}
@@ -241,7 +259,7 @@ func (h *registrationHandler) sendHeartbeatRequest() (*heartbeatResponse, error)
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", h.endpoint, bytes.NewBuffer(requestBytes))
+	req, err := http.NewRequest("POST", h.endpoint+heartbeatEndpoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
 		return nil, err
 	}
