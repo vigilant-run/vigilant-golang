@@ -109,13 +109,13 @@ func (h *registrationHandler) runRegistration() {
 			if !h.registered {
 				log.Printf("Registering service %s", h.serviceName)
 				var err error
-				for range [10]int{} {
+				for i := 1; i < 10; i++ {
 					err = h.register()
 					if err == nil {
 						log.Printf("Registration for service %s completed", h.serviceName)
 						break
 					}
-					time.Sleep(50 * time.Millisecond)
+					time.Sleep(50 * time.Millisecond * time.Duration(i+1))
 				}
 				if err != nil {
 					log.Printf("Error registering service %s: %v", h.serviceName, err)

@@ -47,7 +47,7 @@ func getEndpoint(config *VigilantConfig) string {
 	} else {
 		prefix = "https://"
 	}
-	return prefix + config.Endpoint + "/api/message"
+	return prefix + config.Endpoint
 }
 
 // isLevelEnabled checks if the given level is enabled
