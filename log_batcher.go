@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+const (
+	logEndpoint = "/api/message"
+)
+
 // logBatcher is a struct that contains the queues for the logs
 // it also contains the http client and the wait group
 // when a batch is ready, the logBatcher will send it to the server
@@ -125,7 +129,7 @@ func (b *logBatcher) sendLogBatch(logs []*logMessage) error {
 
 // sendBatch sends a batch to the server
 func (b *logBatcher) sendBatch(batchBytes []byte) error {
-	req, err := http.NewRequest("POST", b.endpoint, bytes.NewBuffer(batchBytes))
+	req, err := http.NewRequest("POST", b.endpoint+logEndpoint, bytes.NewBuffer(batchBytes))
 	if err != nil {
 		return err
 	}
