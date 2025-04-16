@@ -16,7 +16,6 @@ import (
 
 const (
 	registrationEndpoint = "/api/registration"
-	heartbeatEndpoint    = "/api/registration/heartbeat"
 )
 
 type registrationHandler struct {
@@ -259,7 +258,7 @@ func (h *registrationHandler) sendHeartbeatRequest() (*heartbeatResponse, error)
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", h.endpoint+heartbeatEndpoint, bytes.NewBuffer(requestBytes))
+	req, err := http.NewRequest("PUT", h.endpoint+registrationEndpoint, bytes.NewBuffer(requestBytes))
 	if err != nil {
 		return nil, err
 	}
