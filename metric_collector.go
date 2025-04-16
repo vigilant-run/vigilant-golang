@@ -25,6 +25,7 @@ type metricCollector struct {
 
 	mux      sync.RWMutex
 	stopChan chan struct{}
+	stopped  bool
 	wg       sync.WaitGroup
 }
 
@@ -72,6 +73,7 @@ func (c *metricCollector) start() {
 
 // stop stops the collector and the sender using simplified shutdown logic
 func (c *metricCollector) stop() {
+	c.stopped = true
 	close(c.stopChan)
 	c.wg.Wait()
 
@@ -88,16 +90,25 @@ func (c *metricCollector) stop() {
 
 // addCounter adds a counter event to the collector
 func (c *metricCollector) addCounter(event *metricEvent) {
+	if c.stopped {
+		return
+	}
 	c.counterEvents <- event
 }
 
 // addGauge adds a gauge event to the collector
 func (c *metricCollector) addGauge(event *metricEvent) {
+	if c.stopped {
+		return
+	}
 	c.gaugeEvents <- event
 }
 
 // addHistogram adds a histogram event to the collector
 func (c *metricCollector) addHistogram(event *metricEvent) {
+	if c.stopped {
+		return
+	}
 	c.histogramEvents <- event
 }
 
@@ -284,6 +295,12 @@ func (c *metricCollector) processAfterShutdown() {
 	for event := range c.gaugeEvents {
 		c.processGaugeEvent(event)
 		processedGauges++
+	}
+
+	processedHistograms := 0
+	for event := range c.histogramEvents {
+		c.processHistogramEvent(event)
+		processedHistograms++
 	}
 }
 
