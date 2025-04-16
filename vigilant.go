@@ -1,7 +1,6 @@
 package vigilant
 
 import (
-	"log"
 	"maps"
 	"net/http"
 	"time"
@@ -22,7 +21,6 @@ func Init(config *VigilantConfig) {
 
 // Shutdown shuts down the agent, it should be called once when the program is shutting down
 func Shutdown() error {
-	log.Printf("Shutting down agent")
 	if globalAgent == nil {
 		return nil
 	}
@@ -78,12 +76,8 @@ func (a *agent) start() {
 
 // shutdown shuts down the agent
 func (a *agent) shutdown() error {
-	log.Printf("Shutting down log batcher")
 	a.logBatcher.stop()
-	log.Printf("Stopped log batcher")
-	log.Printf("Shutting down metric collector")
 	a.metricCollector.stop()
-	log.Printf("Stopped metric collector")
 	return nil
 }
 

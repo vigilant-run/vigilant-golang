@@ -3,7 +3,6 @@ package vigilant
 import (
 	"context"
 	"fmt"
-	"log"
 	"maps"
 	"net/http"
 	"strings"
@@ -59,6 +58,7 @@ func newMetricCollector(
 		histogramEvents: make(chan *metricEvent, 1000),
 		mux:             sync.RWMutex{},
 		stopChan:        make(chan struct{}),
+		stopped:         false,
 		wg:              sync.WaitGroup{},
 	}
 }
@@ -74,7 +74,6 @@ func (c *metricCollector) start() {
 
 // stop stops the collector and the sender using simplified shutdown logic
 func (c *metricCollector) stop() {
-	log.Printf("Stopping metric collector")
 	c.stopped = true
 	close(c.stopChan)
 	c.wg.Wait()
@@ -86,13 +85,8 @@ func (c *metricCollector) stop() {
 	c.processAfterShutdown()
 	c.sendAfterShutdown()
 
-	log.Printf("Stopping metric sender")
 	c.sender.stop()
-	log.Printf("Stopped metric sender")
-
-	log.Printf("Stopping registration handler")
 	c.registration.stop()
-	log.Printf("Stopped registration handler")
 }
 
 // addCounter adds a counter event to the collector

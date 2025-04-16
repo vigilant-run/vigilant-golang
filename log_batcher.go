@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -68,7 +67,6 @@ func (b *logBatcher) stop() {
 
 	close(b.logQueue)
 	b.processAfterShutdown()
-	log.Printf("Stopped log batcher")
 }
 
 // runLogBatcher runs the log batcher
