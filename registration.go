@@ -142,7 +142,7 @@ func (h *registrationHandler) register() error {
 	defer h.mux.Unlock()
 	if !h.registered {
 		h.serviceInstanceNumber = response.ServiceInstanceNumber
-		h.serviceInstanceId = uuid.MustParse(response.ServiceInstanceID)
+		h.serviceInstanceId = response.ServiceInstanceID
 		h.registered = true
 		close(h.registeredChan)
 	}
@@ -206,6 +206,10 @@ func (h *registrationHandler) sendRegistrationRequest() (*registrationResponse, 
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to register service %s: %d", h.serviceName, resp.StatusCode)
+	}
+
 	var response registrationResponse
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	if err != nil {
@@ -242,6 +246,10 @@ func (h *registrationHandler) sendDeregistrationRequest() error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to heartbeat service %s: %d", h.serviceName, resp.StatusCode)
+	}
+
 	return nil
 }
 
@@ -272,6 +280,10 @@ func (h *registrationHandler) sendHeartbeatRequest() (*heartbeatResponse, error)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to heartbeat service %s: %d", h.serviceName, resp.StatusCode)
+	}
+
 	var response heartbeatResponse
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	if err != nil {
@@ -287,8 +299,8 @@ type registrationRequest struct {
 }
 
 type registrationResponse struct {
-	ServiceInstanceNumber int    `json:"service_instance_number"`
-	ServiceInstanceID     string `json:"service_instance_id"`
+	ServiceInstanceNumber int       `json:"service_instance_number"`
+	ServiceInstanceID     uuid.UUID `json:"service_instance_id"`
 }
 
 type deregistrationRequest struct {
