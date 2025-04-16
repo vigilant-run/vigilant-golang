@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
 )
 
 const (
-	logEndpoint = "/api/message"
+	logEndpoint  = "/api/message"
+	maxBatchSize = 100
 )
 
 // logBatcher is a struct that contains the queues for the logs
@@ -24,6 +26,7 @@ type logBatcher struct {
 
 	client *http.Client
 
+	stopped   bool
 	batchStop chan struct{}
 	wg        sync.WaitGroup
 }
@@ -51,17 +54,27 @@ func (b *logBatcher) start() {
 
 // addLog adds a log to the batcher's queue
 func (b *logBatcher) addLog(message *logMessage) {
-	if message == nil {
+	if message == nil || b.stopped {
 		return
 	}
 	b.logQueue <- message
+}
+
+// stop stops the batcher and processes remaining logs
+func (b *logBatcher) stop() {
+	b.stopped = true
+	close(b.batchStop)
+	b.wg.Wait()
+
+	close(b.logQueue)
+	b.processAfterShutdown()
+	log.Printf("Stopped log batcher")
 }
 
 // runLogBatcher runs the log batcher
 func (b *logBatcher) runLogBatcher() {
 	defer b.wg.Done()
 
-	const maxBatchSize = 100
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -71,7 +84,7 @@ func (b *logBatcher) runLogBatcher() {
 		case <-b.batchStop:
 			if len(logs) > 0 {
 				if err := b.sendLogBatch(logs); err != nil {
-					fmt.Printf("error sending log batch: %v\n", err)
+					fmt.Printf("error sending final log batch: %v\n", err)
 				}
 			}
 			return
@@ -97,10 +110,26 @@ func (b *logBatcher) runLogBatcher() {
 	}
 }
 
-// stop stops the batcher
-func (b *logBatcher) stop() {
-	close(b.batchStop)
-	b.wg.Wait()
+// processAfterShutdown processes any remaining logs in the queue after shutdown.
+func (b *logBatcher) processAfterShutdown() {
+	var logs []*logMessage
+	for msg := range b.logQueue {
+		if msg == nil {
+			continue
+		}
+		logs = append(logs, msg)
+		if len(logs) >= 100 {
+			if err := b.sendLogBatch(logs); err != nil {
+				fmt.Printf("error sending shutdown log batch: %v\n", err)
+			}
+			logs = nil
+		}
+	}
+	if len(logs) > 0 {
+		if err := b.sendLogBatch(logs); err != nil {
+			fmt.Printf("error sending final shutdown log batch: %v\n", err)
+		}
+	}
 }
 
 // sendLogBatch sends a log batch to the server

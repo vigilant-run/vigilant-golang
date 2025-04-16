@@ -17,6 +17,7 @@ type metricSender struct {
 
 	client *http.Client
 
+	stopped   bool
 	batchStop chan struct{}
 	wg        sync.WaitGroup
 }
@@ -30,6 +31,7 @@ func newMetricSender(
 	return &metricSender{
 		token:     token,
 		endpoint:  endpoint,
+		stopped:   false,
 		aggsQueue: make(chan *aggregatedMetrics, 100),
 		batchStop: make(chan struct{}),
 		client:    httpClient,
@@ -44,7 +46,7 @@ func (s *metricSender) start() {
 
 // sendAggregatedMetrics sends a batch to the sender's queue
 func (s *metricSender) sendAggregatedMetrics(metrics *aggregatedMetrics) {
-	if metrics == nil {
+	if metrics == nil || s.stopped {
 		return
 	}
 	s.aggsQueue <- metrics
@@ -69,10 +71,26 @@ func (s *metricSender) runMetricSender() {
 	}
 }
 
-// stop stops the sender
+// stop stops the sender and processes remaining metrics
 func (s *metricSender) stop() {
+	s.stopped = true
 	close(s.batchStop)
 	s.wg.Wait()
+
+	close(s.aggsQueue)
+	s.processAfterShutdown()
+}
+
+// processAfterShutdown processes any remaining aggregated metrics in the queue after shutdown.
+func (s *metricSender) processAfterShutdown() {
+	for aggs := range s.aggsQueue {
+		if aggs == nil {
+			continue
+		}
+		if len(aggs.counterMetrics) > 0 || len(aggs.gaugeMetrics) > 0 || len(aggs.histogramMetrics) > 0 {
+			_ = s.sendMetrics(aggs)
+		}
+	}
 }
 
 // sendMetrics sends a counter batch to the server
