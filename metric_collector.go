@@ -2,8 +2,6 @@ package vigilant
 
 import (
 	"context"
-	"fmt"
-	"maps"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,8 +12,7 @@ import (
 // it also contains the sender for the metrics
 // every interval, the collector will send the client-side aggregated metrics to the server
 type metricCollector struct {
-	sender       *metricSender
-	registration *registrationHandler
+	sender *metricSender
 
 	interval        time.Duration
 	capturedBuckets map[time.Time]*capturedMetrics
@@ -34,7 +31,6 @@ func newMetricCollector(
 	interval time.Duration,
 	token string,
 	endpoint string,
-	serviceName string,
 	httpClient *http.Client,
 ) *metricCollector {
 	metricSender := newMetricSender(
@@ -42,15 +38,8 @@ func newMetricCollector(
 		endpoint,
 		httpClient,
 	)
-	registrationHandler := newRegistrationHandler(
-		token,
-		endpoint,
-		serviceName,
-		httpClient,
-	)
 	return &metricCollector{
 		sender:          metricSender,
-		registration:    registrationHandler,
 		interval:        interval,
 		capturedBuckets: make(map[time.Time]*capturedMetrics),
 		counterEvents:   make(chan *metricEvent, 1000),
@@ -67,7 +56,6 @@ func newMetricCollector(
 func (c *metricCollector) start() {
 	c.wg.Add(2)
 	go c.sender.start()
-	go c.registration.start()
 	go c.processEvents()
 	go c.runTicker()
 }
@@ -86,7 +74,6 @@ func (c *metricCollector) stop() {
 	c.sendAfterShutdown()
 
 	c.sender.stop()
-	c.registration.stop()
 }
 
 // addCounter adds a counter event to the collector
@@ -128,12 +115,6 @@ func (c *metricCollector) runTicker() {
 		}
 	}()
 
-	err := c.registration.waitForRegistration(ctx)
-	if err != nil {
-		fmt.Printf("metric collector exiting ticker: could not complete initial registration: %v\n", err)
-		return
-	}
-
 	now := time.Now()
 	nextInterval := now.Truncate(c.interval).Add(c.interval)
 	firstTriggerTime := nextInterval.Add(1 * time.Second)
@@ -143,9 +124,7 @@ func (c *metricCollector) runTicker() {
 	}
 
 	durationUntilFirstTrigger := firstTriggerTime.Sub(now)
-	if durationUntilFirstTrigger < 0 {
-		durationUntilFirstTrigger = 0
-	}
+	durationUntilFirstTrigger = time.Duration(max(0, int64(durationUntilFirstTrigger)))
 
 	timer := time.NewTimer(durationUntilFirstTrigger)
 	defer timer.Stop()
@@ -307,18 +286,13 @@ func (c *metricCollector) processAfterShutdown() {
 
 // sendMetricsForInterval sends the metrics for the interval
 func (c *metricCollector) sendMetricsForInterval(intervalStart time.Time) {
-	serviceInstance, err := c.registration.getServiceInstance()
-	if err != nil {
-		return
-	}
-
 	var metricsToSend *aggregatedMetrics
 	var counterCount, gaugeCount int
 
 	c.mux.Lock()
 	bucket, ok := c.capturedBuckets[intervalStart]
 	if ok && bucket != nil && (len(bucket.counters) > 0 || len(bucket.gauges) > 0) {
-		metricsToSend = aggregateCapturedMetrics(intervalStart, bucket, serviceInstance)
+		metricsToSend = aggregateCapturedMetrics(intervalStart, bucket)
 		counterCount = len(metricsToSend.counterMetrics)
 		gaugeCount = len(metricsToSend.gaugeMetrics)
 
@@ -368,13 +342,8 @@ func (c *metricCollector) sendAfterShutdown() {
 	c.capturedBuckets = make(map[time.Time]*capturedMetrics)
 	c.mux.Unlock()
 
-	serviceInstance, err := c.registration.getServiceInstance()
-	if err != nil {
-		return
-	}
-
 	for timestamp, bucket := range bucketsToSend {
-		aggregatedMetrics := aggregateCapturedMetrics(timestamp, bucket, serviceInstance)
+		aggregatedMetrics := aggregateCapturedMetrics(timestamp, bucket)
 		c.sender.sendAggregatedMetrics(aggregatedMetrics)
 	}
 }
@@ -450,7 +419,6 @@ func createCapturedMetrics() *capturedMetrics {
 func aggregateCapturedMetrics(
 	timestamp time.Time,
 	capturedMetrics *capturedMetrics,
-	serviceInstance string,
 ) *aggregatedMetrics {
 	aggregatedMetrics := newAggregatedMetrics()
 
@@ -459,7 +427,7 @@ func aggregateCapturedMetrics(
 			Timestamp:  timestamp,
 			MetricName: counter.name,
 			Value:      counter.value,
-			Tags:       addServiceTag(counter.tags, serviceInstance),
+			Tags:       counter.tags,
 		})
 	}
 
@@ -468,7 +436,7 @@ func aggregateCapturedMetrics(
 			Timestamp:  timestamp,
 			MetricName: gauge.name,
 			Value:      gauge.value,
-			Tags:       addServiceTag(gauge.tags, serviceInstance),
+			Tags:       gauge.tags,
 		})
 	}
 
@@ -477,16 +445,9 @@ func aggregateCapturedMetrics(
 			Timestamp:  timestamp,
 			MetricName: histogram.name,
 			Values:     histogram.values,
-			Tags:       addServiceTag(histogram.tags, serviceInstance),
+			Tags:       histogram.tags,
 		})
 	}
 
 	return aggregatedMetrics
-}
-
-func addServiceTag(tags map[string]string, service string) map[string]string {
-	finalTags := make(map[string]string, len(tags)+1)
-	finalTags["service"] = service
-	maps.Copy(finalTags, tags)
-	return finalTags
 }

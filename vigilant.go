@@ -51,7 +51,6 @@ func newVigilant(config *VigilantConfig) *agent {
 		time.Minute,
 		config.Token,
 		getEndpoint(config),
-		config.Name,
 		&http.Client{},
 	)
 	return &agent{
@@ -177,6 +176,6 @@ func (a *agent) withBaseAttributes(attrs map[string]string) map[string]string {
 	if attrs != nil {
 		maps.Copy(updatedAttrs, attrs)
 	}
-	updatedAttrs["service.name"] = a.name
+	updatedAttrs["service"] = a.name
 	return updatedAttrs
 }

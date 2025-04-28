@@ -7,6 +7,10 @@ import (
 	"sync"
 )
 
+const (
+	metricEndpoint = "/api/message"
+)
+
 // metricSender is a struct that contains the queues for the metrics
 // it immediately sends batches of metrics to the server
 type metricSender struct {
@@ -128,7 +132,7 @@ func (s *metricSender) sendMetrics(
 
 // sendBatch sends a batch to the server
 func (s *metricSender) sendBatch(batchBytes []byte) error {
-	req, err := http.NewRequest("POST", s.endpoint, bytes.NewBuffer(batchBytes))
+	req, err := http.NewRequest("POST", s.endpoint+metricEndpoint, bytes.NewBuffer(batchBytes))
 	if err != nil {
 		return err
 	}
