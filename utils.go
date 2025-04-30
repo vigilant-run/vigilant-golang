@@ -30,6 +30,16 @@ func attributesToMap(attributes ...Attribute) (map[string]string, error) {
 	return attrs, nil
 }
 
+// tagsToMap formats a list of tags into a map
+// it is a utility function for some of the observability functions
+func tagsToMap(tags ...MetricTag) (map[string]string, error) {
+	attrs := make(map[string]string)
+	for _, tag := range tags {
+		attrs[tag.Key] = tag.Value
+	}
+	return attrs, nil
+}
+
 // prettyPrintAttributes pretty prints a map of attributes
 func prettyPrintAttributes(attrs map[string]string) string {
 	var sb bytes.Buffer

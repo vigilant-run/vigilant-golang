@@ -35,8 +35,8 @@ type VigilantConfigBuilder struct {
 	noop        *bool
 }
 
-// NewAgentConfigBuilder creates a new agent configuration builder
-func NewAgentConfigBuilder() *VigilantConfigBuilder {
+// NewConfigBuilder creates a new agent configuration builder
+func NewConfigBuilder() *VigilantConfigBuilder {
 	return &VigilantConfigBuilder{}
 }
 

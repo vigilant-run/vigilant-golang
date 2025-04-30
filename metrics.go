@@ -1,28 +1,48 @@
 package vigilant
 
+import "fmt"
+
 // Counter captures a counter metric
-func Counter(name string, value float64, tags map[string]string) {
+func Counter(name string, value float64, tags ...MetricTag) {
 	if gateNilAgent() {
 		return
 	}
 
-	globalAgent.captureCounter(name, value, tags)
+	tagsMap, err := tagsToMap(tags...)
+	if err != nil {
+		fmt.Printf("error formatting tags: %v\n", err)
+		return
+	}
+
+	globalAgent.captureCounter(name, value, tagsMap)
 }
 
 // Gauge captures a gauge metric
-func Gauge(name string, value float64, tags map[string]string) {
+func Gauge(name string, value float64, tags ...MetricTag) {
 	if gateNilAgent() {
 		return
 	}
 
-	globalAgent.captureGauge(name, value, tags)
+	tagsMap, err := tagsToMap(tags...)
+	if err != nil {
+		fmt.Printf("error formatting tags: %v\n", err)
+		return
+	}
+
+	globalAgent.captureGauge(name, value, tagsMap)
 }
 
 // Histogram captures a histogram metric
-func Histogram(name string, value float64, tags map[string]string) {
+func Histogram(name string, value float64, tags ...MetricTag) {
 	if gateNilAgent() {
 		return
 	}
 
-	globalAgent.captureHistogram(name, value, tags)
+	tagsMap, err := tagsToMap(tags...)
+	if err != nil {
+		fmt.Printf("error formatting tags: %v\n", err)
+		return
+	}
+
+	globalAgent.captureHistogram(name, value, tagsMap)
 }
