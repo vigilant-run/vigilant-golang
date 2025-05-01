@@ -2,7 +2,9 @@ package vigilant
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -14,11 +16,15 @@ import (
 type metricCollector struct {
 	sender *metricSender
 
-	interval        time.Duration
-	capturedBuckets map[time.Time]*capturedMetrics
-	counterEvents   chan *metricEvent
-	gaugeEvents     chan *metricEvent
-	histogramEvents chan *metricEvent
+	interval time.Duration
+
+	counterSeries   map[string]*counterSeries
+	gaugeSeries     map[string]*gaugeSeries
+	histogramSeries map[string]*histogramSeries
+
+	counterEvents   chan *counterEvent
+	gaugeEvents     chan *gaugeEvent
+	histogramEvents chan *histogramEvent
 
 	mux      sync.RWMutex
 	stopChan chan struct{}
@@ -41,10 +47,12 @@ func newMetricCollector(
 	return &metricCollector{
 		sender:          metricSender,
 		interval:        interval,
-		capturedBuckets: make(map[time.Time]*capturedMetrics),
-		counterEvents:   make(chan *metricEvent, 1000),
-		gaugeEvents:     make(chan *metricEvent, 1000),
-		histogramEvents: make(chan *metricEvent, 1000),
+		counterSeries:   make(map[string]*counterSeries),
+		gaugeSeries:     make(map[string]*gaugeSeries),
+		histogramSeries: make(map[string]*histogramSeries),
+		counterEvents:   make(chan *counterEvent, 1000),
+		gaugeEvents:     make(chan *gaugeEvent, 1000),
+		histogramEvents: make(chan *histogramEvent, 1000),
 		mux:             sync.RWMutex{},
 		stopChan:        make(chan struct{}),
 		stopped:         false,
@@ -77,7 +85,8 @@ func (c *metricCollector) stop() {
 }
 
 // addCounter adds a counter event to the collector
-func (c *metricCollector) addCounter(event *metricEvent) {
+func (c *metricCollector) addCounter(event *counterEvent) {
+	fmt.Println("Adding counter event", event)
 	if c.stopped {
 		return
 	}
@@ -85,7 +94,8 @@ func (c *metricCollector) addCounter(event *metricEvent) {
 }
 
 // addGauge adds a gauge event to the collector
-func (c *metricCollector) addGauge(event *metricEvent) {
+func (c *metricCollector) addGauge(event *gaugeEvent) {
+	fmt.Println("Adding gauge event", event)
 	if c.stopped {
 		return
 	}
@@ -93,7 +103,8 @@ func (c *metricCollector) addGauge(event *metricEvent) {
 }
 
 // addHistogram adds a histogram event to the collector
-func (c *metricCollector) addHistogram(event *metricEvent) {
+func (c *metricCollector) addHistogram(event *histogramEvent) {
+	fmt.Println("Adding histogram event", event)
 	if c.stopped {
 		return
 	}
@@ -118,13 +129,15 @@ func (c *metricCollector) runTicker() {
 	now := time.Now()
 	nextInterval := now.Truncate(c.interval).Add(c.interval)
 	firstTriggerTime := nextInterval.Add(1 * time.Second)
+	fmt.Println("First trigger time", firstTriggerTime)
 
 	if firstTriggerTime.Before(now) {
-		firstTriggerTime = nextInterval.Add(c.interval).Add(1 * time.Second)
+		firstTriggerTime = nextInterval.Add(c.interval).Add(50 * time.Millisecond)
 	}
 
 	durationUntilFirstTrigger := firstTriggerTime.Sub(now)
 	durationUntilFirstTrigger = time.Duration(max(0, int64(durationUntilFirstTrigger)))
+	fmt.Println("Duration until first trigger", durationUntilFirstTrigger)
 
 	timer := time.NewTimer(durationUntilFirstTrigger)
 	defer timer.Stop()
@@ -141,6 +154,7 @@ func (c *metricCollector) runTicker() {
 		case <-c.stopChan:
 			return
 		case firstTickTime := <-timer.C:
+			fmt.Println("First tick time", firstTickTime)
 			select {
 			case <-c.stopChan:
 				return
@@ -157,7 +171,9 @@ func (c *metricCollector) runTicker() {
 				case <-c.stopChan:
 					return
 				case tickTime := <-ticker.C:
+					fmt.Println("Tick time", tickTime)
 					intervalToProcess = tickTime.Truncate(c.interval).Add(-c.interval)
+					fmt.Println("Interval to process", intervalToProcess)
 					c.sendMetricsForInterval(intervalToProcess)
 				}
 			}
@@ -201,65 +217,81 @@ func (c *metricCollector) processEvents() {
 }
 
 // processCounterEvent handles processing a single counter event
-func (c *metricCollector) processCounterEvent(event *metricEvent) {
+func (c *metricCollector) processCounterEvent(event *counterEvent) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
-
-	bucket := c.getBucket(event.timestamp)
 
 	identifier := newMetricIdentifier(event.name, event.tags)
 	identifierString := identifier.String()
 
-	if counter, exists := bucket.counters[identifierString]; exists {
-		counter.value += event.value
+	if series, exists := c.counterSeries[identifierString]; exists {
+		series.value += event.value
 	} else {
-		bucket.counters[identifierString] = &capturedCounter{
+		series := &counterSeries{
 			name:  event.name,
 			tags:  event.tags,
 			value: event.value,
 		}
+		c.counterSeries[identifierString] = series
 	}
 }
 
 // processGaugeEvent handles processing a single gauge event
-func (c *metricCollector) processGaugeEvent(event *metricEvent) {
+func (c *metricCollector) processGaugeEvent(event *gaugeEvent) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
-
-	bucket := c.getBucket(event.timestamp)
 
 	identifier := newMetricIdentifier(event.name, event.tags)
 	identifierString := identifier.String()
 
-	if gauge, exists := bucket.gauges[identifierString]; exists {
-		gauge.value = event.value
+	if series, exists := c.gaugeSeries[identifierString]; exists {
+		switch event.mode {
+		case GaugeModeInc:
+			series.value += event.value
+		case GaugeModeDec:
+			series.value -= event.value
+		case GaugeModeSet:
+			series.value = event.value
+		default:
+			series.value = event.value
+		}
 	} else {
-		bucket.gauges[identifierString] = &capturedGauge{
+		series := &gaugeSeries{
 			name:  event.name,
 			tags:  event.tags,
-			value: event.value,
+			value: 0,
 		}
+		switch event.mode {
+		case GaugeModeInc:
+			series.value += event.value
+		case GaugeModeDec:
+			series.value -= event.value
+		case GaugeModeSet:
+			series.value = event.value
+		default:
+			series.value = event.value
+		}
+		c.gaugeSeries[identifierString] = series
 	}
 }
 
 // processHistogramEvent handles processing a single histogram event
-func (c *metricCollector) processHistogramEvent(event *metricEvent) {
+func (c *metricCollector) processHistogramEvent(event *histogramEvent) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
-
-	bucket := c.getBucket(event.timestamp)
 
 	identifier := newMetricIdentifier(event.name, event.tags)
 	identifierString := identifier.String()
 
-	if histogram, exists := bucket.histograms[identifierString]; exists {
-		histogram.values = append(histogram.values, event.value)
+	if series, exists := c.histogramSeries[identifierString]; exists {
+		series.values = append(series.values, event.value)
 	} else {
-		bucket.histograms[identifierString] = &capturedHistogram{
+		series := &histogramSeries{
 			name:   event.name,
 			values: []float64{event.value},
 			tags:   event.tags,
 		}
+		c.histogramSeries[identifierString] = series
 	}
 }
 
@@ -286,77 +318,27 @@ func (c *metricCollector) processAfterShutdown() {
 
 // sendMetricsForInterval sends the metrics for the interval
 func (c *metricCollector) sendMetricsForInterval(intervalStart time.Time) {
-	var metricsToSend *aggregatedMetrics
-	var counterCount, gaugeCount int
-
+	fmt.Println("Sending metrics for interval", intervalStart)
 	c.mux.Lock()
-	bucket, ok := c.capturedBuckets[intervalStart]
-	if ok && bucket != nil && (len(bucket.counters) > 0 || len(bucket.gauges) > 0) {
-		metricsToSend = aggregateCapturedMetrics(intervalStart, bucket)
-		counterCount = len(metricsToSend.counterMetrics)
-		gaugeCount = len(metricsToSend.gaugeMetrics)
-
-		bucket.counters = make(map[string]*capturedCounter)
-		bucket.gauges = make(map[string]*capturedGauge)
-	}
+	metricsToSend := c.aggregateMetrics(intervalStart)
 	c.mux.Unlock()
 
-	if metricsToSend != nil && (counterCount > 0 || gaugeCount > 0) {
+	if metricsToSend != nil {
 		c.sender.sendAggregatedMetrics(metricsToSend)
-	}
-
-	c.cleanupOldBuckets(intervalStart)
-}
-
-// cleanupOldBuckets removes buckets older than the previous interval being processed.
-// This gives late metrics potentially one extra interval to arrive before their bucket is deleted.
-func (c *metricCollector) cleanupOldBuckets(currentIntervalJustProcessed time.Time) {
-	c.mux.Lock()
-	defer c.mux.Unlock()
-
-	cleanupThreshold := currentIntervalJustProcessed.Add(-1 * c.interval)
-	toDelete := []time.Time{}
-	for ts := range c.capturedBuckets {
-		if ts.Before(cleanupThreshold) {
-			toDelete = append(toDelete, ts)
-		}
-	}
-
-	if len(toDelete) > 0 {
-		for _, ts := range toDelete {
-			delete(c.capturedBuckets, ts)
-		}
 	}
 }
 
 // sendAfterShutdown sends all metrics currently held in buckets.
 func (c *metricCollector) sendAfterShutdown() {
-	bucketsToSend := make(map[time.Time]*capturedMetrics)
-
 	c.mux.Lock()
-	for ts, bucket := range c.capturedBuckets {
-		if bucket != nil && (len(bucket.counters) > 0 || len(bucket.gauges) > 0) {
-			bucketsToSend[ts] = bucket
-		}
-	}
-	c.capturedBuckets = make(map[time.Time]*capturedMetrics)
+	intervalStart := time.Now().Truncate(c.interval)
+	metricsToSend := c.aggregateMetrics(intervalStart)
+	c.resetMetrics()
 	c.mux.Unlock()
 
-	for timestamp, bucket := range bucketsToSend {
-		aggregatedMetrics := aggregateCapturedMetrics(timestamp, bucket)
-		c.sender.sendAggregatedMetrics(aggregatedMetrics)
+	if metricsToSend != nil {
+		c.sender.sendAggregatedMetrics(metricsToSend)
 	}
-}
-
-// getBucket gets the bucket for the current time
-func (c *metricCollector) getBucket(now time.Time) *capturedMetrics {
-	floored := now.Truncate(c.interval)
-	bucket, ok := c.capturedBuckets[floored]
-	if !ok {
-		bucket = createCapturedMetrics()
-		c.capturedBuckets[floored] = bucket
-	}
-	return bucket
 }
 
 // metricIdentifier is a struct that contains the name and tags of a metric
@@ -372,57 +354,21 @@ func newMetricIdentifier(name string, tags map[string]string) *metricIdentifier 
 // String returns the string representation of the metric identifier
 func (m *metricIdentifier) String() string {
 	parts := []string{m.name}
+	tags := make([]string, 0, len(m.tags))
 	for k, v := range m.tags {
-		parts = append(parts, k, v)
+		tags = append(tags, fmt.Sprintf("%s=%s", k, v))
 	}
-	return strings.Join(parts, "_")
+	sort.Strings(tags)
+	return strings.Join(append(parts, tags...), "_")
 }
 
-// capturedCounter is a struct that contains the name, value, and tags of a counter metric
-type capturedCounter struct {
-	name  string
-	value float64
-	tags  map[string]string
-}
-
-// capturedGauge is a struct that contains the name, value, and tags of a gauge metric
-type capturedGauge struct {
-	name  string
-	value float64
-	tags  map[string]string
-}
-
-// capturedHistogram is a struct that contains the name, value, and tags of a histogram metric
-type capturedHistogram struct {
-	name   string
-	values []float64
-	tags   map[string]string
-}
-
-// capturedMetrics is a struct that contains the counters and gauges for a bucket
-type capturedMetrics struct {
-	counters   map[string]*capturedCounter
-	gauges     map[string]*capturedGauge
-	histograms map[string]*capturedHistogram
-}
-
-// createCapturedMetrics creates a new capturedMetrics
-func createCapturedMetrics() *capturedMetrics {
-	return &capturedMetrics{
-		counters:   make(map[string]*capturedCounter),
-		gauges:     make(map[string]*capturedGauge),
-		histograms: make(map[string]*capturedHistogram),
-	}
-}
-
-// transformCapturedMetrics transforms the captured metrics into an aggregated metrics
-func aggregateCapturedMetrics(
+// aggregateMetrics creates a snapshot of the metrics for the given interval
+func (c *metricCollector) aggregateMetrics(
 	timestamp time.Time,
-	capturedMetrics *capturedMetrics,
 ) *aggregatedMetrics {
 	aggregatedMetrics := newAggregatedMetrics()
 
-	for _, counter := range capturedMetrics.counters {
+	for _, counter := range c.counterSeries {
 		aggregatedMetrics.counterMetrics = append(aggregatedMetrics.counterMetrics, &counterMessage{
 			Timestamp:  timestamp,
 			MetricName: counter.name,
@@ -431,7 +377,7 @@ func aggregateCapturedMetrics(
 		})
 	}
 
-	for _, gauge := range capturedMetrics.gauges {
+	for _, gauge := range c.gaugeSeries {
 		aggregatedMetrics.gaugeMetrics = append(aggregatedMetrics.gaugeMetrics, &gaugeMessage{
 			Timestamp:  timestamp,
 			MetricName: gauge.name,
@@ -440,7 +386,7 @@ func aggregateCapturedMetrics(
 		})
 	}
 
-	for _, histogram := range capturedMetrics.histograms {
+	for _, histogram := range c.histogramSeries {
 		aggregatedMetrics.histogramMetrics = append(aggregatedMetrics.histogramMetrics, &histogramMessage{
 			Timestamp:  timestamp,
 			MetricName: histogram.name,
@@ -450,4 +396,16 @@ func aggregateCapturedMetrics(
 	}
 
 	return aggregatedMetrics
+}
+
+// resetMetrics resets the metrics for the given interval
+func (c *metricCollector) resetMetrics() {
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	for _, counter := range c.counterSeries {
+		counter.value = 0
+	}
+	for _, histogram := range c.histogramSeries {
+		histogram.values = []float64{}
+	}
 }

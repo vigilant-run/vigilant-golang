@@ -13,6 +13,21 @@ const (
 	LEVEL_TRACE LogLevel = "TRACE"
 )
 
+// GaugeMode is the mode of a gauge metric.
+// It is used to specify the mode of a gauge metric.
+type GaugeMode string
+
+const (
+	// GaugeModeSet sets the gauge to the given value.
+	GaugeModeSet GaugeMode = "set"
+
+	// GaugeModeInc increments the gauge by the given value.
+	GaugeModeInc GaugeMode = "inc"
+
+	// GaugeModeDec decrements the gauge by the given value.
+	GaugeModeDec GaugeMode = "dec"
+)
+
 // messageBatch represents a batch of logs
 type messageBatch struct {
 	Token             string              `json:"token"`
@@ -71,9 +86,47 @@ func newAggregatedMetrics() *aggregatedMetrics {
 }
 
 // internal counter event
-type metricEvent struct {
+type counterEvent struct {
 	timestamp time.Time
 	name      string
 	value     float64
 	tags      map[string]string
+}
+
+// internal gauge event
+type gaugeEvent struct {
+	timestamp time.Time
+	name      string
+	value     float64
+	mode      GaugeMode
+	tags      map[string]string
+}
+
+// internal histogram event
+type histogramEvent struct {
+	timestamp time.Time
+	name      string
+	value     float64
+	tags      map[string]string
+}
+
+// counterSeries represents a series of counter metrics
+type counterSeries struct {
+	name  string
+	tags  map[string]string
+	value float64
+}
+
+// gaugeSeries represents a series of gauge metrics
+type gaugeSeries struct {
+	name  string
+	tags  map[string]string
+	value float64
+}
+
+// histogramSeries represents a series of histogram metrics
+type histogramSeries struct {
+	name   string
+	tags   map[string]string
+	values []float64
 }
