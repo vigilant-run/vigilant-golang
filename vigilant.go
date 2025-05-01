@@ -81,93 +81,49 @@ func (a *agent) shutdown() error {
 }
 
 // captureLog captures a log message
-func (a *agent) captureLog(
-	level LogLevel,
-	message string,
-	attrs map[string]string,
-) {
-	if !isLevelEnabled(level, a.level) {
+func (a *agent) captureLog(log *logMessage) {
+	if !isLevelEnabled(log.Level, a.level) {
 		return
 	}
 
-	updatedAttrs := a.withBaseAttributes(attrs)
+	log.Attributes = a.withBaseAttributes(log.Attributes)
 
 	if a.passthrough {
-		writeLogPassthrough(level, message, updatedAttrs)
+		writeLogPassthrough(log.Level, log.Body, log.Attributes)
 	}
 
 	if a.noop {
 		return
 	}
 
-	logMessage := &logMessage{
-		Timestamp:  time.Now(),
-		Level:      level,
-		Body:       message,
-		Attributes: updatedAttrs,
-	}
-
-	a.logBatcher.addLog(logMessage)
+	a.logBatcher.addLog(log)
 }
 
 // captureCounter captures a counter metric
-func (a *agent) captureCounter(
-	name string,
-	value float64,
-	tags map[string]string,
-) {
+func (a *agent) captureCounter(counter *counterEvent) {
 	if a.noop {
 		return
 	}
 
-	event := &metricEvent{
-		timestamp: time.Now(),
-		name:      name,
-		value:     value,
-		tags:      tags,
-	}
-
-	a.metricCollector.addCounter(event)
+	a.metricCollector.addCounter(counter)
 }
 
 // captureGauge captures a gauge metric
-func (a *agent) captureGauge(
-	name string,
-	value float64,
-	tags map[string]string,
-) {
+func (a *agent) captureGauge(gauge *gaugeEvent) {
 	if a.noop {
 		return
 	}
 
-	event := &metricEvent{
-		timestamp: time.Now(),
-		name:      name,
-		value:     value,
-		tags:      tags,
-	}
-
-	a.metricCollector.addGauge(event)
+	a.metricCollector.addGauge(gauge)
 }
 
 // captureHistogram captures a histogram metric
-func (a *agent) captureHistogram(
-	name string,
-	value float64,
-	tags map[string]string,
-) {
+func (a *agent) captureHistogram(histogram *histogramEvent) {
 	if a.noop {
 		return
 	}
 
-	event := &metricEvent{
-		timestamp: time.Now(),
-		name:      name,
-		value:     value,
-		tags:      tags,
-	}
-
-	a.metricCollector.addHistogram(event)
+	a.metricCollector.addHistogram(histogram)
 }
 
 // withBaseAttributes adds the service name attribute to the given attributes

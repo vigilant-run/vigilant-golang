@@ -3,6 +3,7 @@ package vigilant
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 )
@@ -92,7 +93,10 @@ func (s *metricSender) processAfterShutdown() {
 			continue
 		}
 		if len(aggs.counterMetrics) > 0 || len(aggs.gaugeMetrics) > 0 || len(aggs.histogramMetrics) > 0 {
-			_ = s.sendMetrics(aggs)
+			err := s.sendMetrics(aggs)
+			if err != nil {
+				fmt.Println("error sending metrics after shutdown", err)
+			}
 		}
 	}
 }
@@ -119,11 +123,13 @@ func (s *metricSender) sendMetrics(
 
 	batchBytes, err := json.Marshal(batch)
 	if err != nil {
+		fmt.Println("error marshalling metrics", err)
 		return err
 	}
 
 	err = s.sendBatch(batchBytes)
 	if err != nil {
+		fmt.Println("error sending batch", err)
 		return err
 	}
 
@@ -134,6 +140,7 @@ func (s *metricSender) sendMetrics(
 func (s *metricSender) sendBatch(batchBytes []byte) error {
 	req, err := http.NewRequest("POST", s.endpoint+metricEndpoint, bytes.NewBuffer(batchBytes))
 	if err != nil {
+		fmt.Println("error creating request", err)
 		return err
 	}
 
@@ -142,6 +149,7 @@ func (s *metricSender) sendBatch(batchBytes []byte) error {
 
 	resp, err := s.client.Do(req)
 	if err != nil {
+		fmt.Println("error sending batch", err)
 		return err
 	}
 	defer resp.Body.Close()

@@ -23,7 +23,12 @@ func Log(level LogLevel, message string) {
 		return
 	}
 
-	globalAgent.captureLog(level, message, nil)
+	log := createLogMessage(level, message, nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogError logs an error at the given level
@@ -38,7 +43,12 @@ func LogError(message string) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_ERROR, message, nil)
+	log := createLogMessage(LEVEL_ERROR, message, nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogWarn logs a warning at the given level
@@ -53,7 +63,12 @@ func LogWarn(message string) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_WARN, message, nil)
+	log := createLogMessage(LEVEL_WARN, message, nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogInfo logs an info message at the given level
@@ -68,7 +83,12 @@ func LogInfo(message string) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_INFO, message, nil)
+	log := createLogMessage(LEVEL_INFO, message, nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogDebug logs a debug message at the given level
@@ -83,7 +103,12 @@ func LogDebug(message string) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_DEBUG, message, nil)
+	log := createLogMessage(LEVEL_DEBUG, message, nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogTrace logs a trace message at the given level
@@ -98,7 +123,12 @@ func LogTrace(message string) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_TRACE, message, nil)
+	log := createLogMessage(LEVEL_TRACE, message, nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // ------------------------- //
@@ -116,7 +146,12 @@ func LogErrorf(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_ERROR, fmt.Sprintf(template, args...), nil)
+	log := createLogMessage(LEVEL_ERROR, fmt.Sprintf(template, args...), nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogWarnf logs a warning at the given level
@@ -131,7 +166,12 @@ func LogWarnf(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_WARN, fmt.Sprintf(template, args...), nil)
+	log := createLogMessage(LEVEL_WARN, fmt.Sprintf(template, args...), nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogInfof logs an info message at the given level
@@ -146,7 +186,12 @@ func LogInfof(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_INFO, fmt.Sprintf(template, args...), nil)
+	log := createLogMessage(LEVEL_INFO, fmt.Sprintf(template, args...), nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogDebugf logs a debug message at the given level
@@ -161,7 +206,12 @@ func LogDebugf(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_DEBUG, fmt.Sprintf(template, args...), nil)
+	log := createLogMessage(LEVEL_DEBUG, fmt.Sprintf(template, args...), nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogTracef logs a trace message at the given level
@@ -176,7 +226,12 @@ func LogTracef(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_TRACE, fmt.Sprintf(template, args...), nil)
+	log := createLogMessage(LEVEL_TRACE, fmt.Sprintf(template, args...), nil)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // ------------------------------- //
@@ -201,7 +256,12 @@ func LogErrort(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_ERROR, message, attrs)
+	log := createLogMessage(LEVEL_ERROR, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogWarnt logs a warning at the given level with typed attributes
@@ -222,7 +282,12 @@ func LogWarnt(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_WARN, message, attrs)
+	log := createLogMessage(LEVEL_WARN, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogInfot logs an info message at the given level with typed attributes
@@ -243,7 +308,12 @@ func LogInfot(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_INFO, message, attrs)
+	log := createLogMessage(LEVEL_INFO, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogDebugt logs a debug message at the given level with typed attributes
@@ -264,7 +334,12 @@ func LogDebugt(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_DEBUG, message, attrs)
+	log := createLogMessage(LEVEL_DEBUG, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogTracet logs a trace message at the given level with typed attributes
@@ -285,7 +360,12 @@ func LogTracet(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_TRACE, message, attrs)
+	log := createLogMessage(LEVEL_TRACE, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // -------------------------------- //
@@ -310,7 +390,12 @@ func LogErrorw(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_ERROR, message, attrs)
+	log := createLogMessage(LEVEL_ERROR, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogWarnw logs a warning at the given level with key-value attributes
@@ -331,7 +416,12 @@ func LogWarnw(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_WARN, message, attrs)
+	log := createLogMessage(LEVEL_WARN, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogInfow logs an info message at the given level with key-value attributes
@@ -352,7 +442,12 @@ func LogInfow(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_INFO, message, attrs)
+	log := createLogMessage(LEVEL_INFO, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // LogDebugw logs a debug message at the given level with key-value attributes
@@ -373,7 +468,12 @@ func LogDebugw(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(LEVEL_DEBUG, message, attrs)
+	log := createLogMessage(LEVEL_DEBUG, message, attrs)
+	if log == nil {
+		return
+	}
+
+	globalAgent.captureLog(log)
 }
 
 // writeLogPassthrough writes a log message to the agent
