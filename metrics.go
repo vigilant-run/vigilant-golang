@@ -1,48 +1,43 @@
 package vigilant
 
-import "fmt"
-
-// Counter captures a counter metric
+// MetricCounter captures a counter metric
 func MetricCounter(name string, value float64, tags ...MetricTag) {
-	if gateNilAgent() {
+	if gateNilAgent() || value < 0 {
 		return
 	}
 
-	tagsMap, err := tagsToMap(tags...)
-	if err != nil {
-		fmt.Printf("error formatting tags: %v\n", err)
+	counter := createCounterEvent(name, value, tags...)
+	if counter == nil {
 		return
 	}
 
-	globalAgent.captureCounter(name, value, tagsMap)
+	globalAgent.captureCounter(counter)
 }
 
-// Gauge captures a gauge metric
-func MetricGauge(name string, value float64, tags ...MetricTag) {
-	if gateNilAgent() {
+// MetricGauge captures a gauge metric
+func MetricGauge(name string, value float64, mode GaugeMode, tags ...MetricTag) {
+	if gateNilAgent() || value < 0 {
 		return
 	}
 
-	tagsMap, err := tagsToMap(tags...)
-	if err != nil {
-		fmt.Printf("error formatting tags: %v\n", err)
+	gauge := createGaugeEvent(name, value, mode, tags...)
+	if gauge == nil {
 		return
 	}
 
-	globalAgent.captureGauge(name, value, tagsMap)
+	globalAgent.captureGauge(gauge)
 }
 
-// Histogram captures a histogram metric
+// MetricHistogram captures a histogram metric
 func MetricHistogram(name string, value float64, tags ...MetricTag) {
-	if gateNilAgent() {
+	if gateNilAgent() || value < 0 {
 		return
 	}
 
-	tagsMap, err := tagsToMap(tags...)
-	if err != nil {
-		fmt.Printf("error formatting tags: %v\n", err)
+	histogram := createHistogramEvent(name, value, tags...)
+	if histogram == nil {
 		return
 	}
 
-	globalAgent.captureHistogram(name, value, tagsMap)
+	globalAgent.captureHistogram(histogram)
 }
