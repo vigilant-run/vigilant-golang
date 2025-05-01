@@ -87,15 +87,15 @@ import (
 
 func function() {
   // Create a counter metric 
-  vigilant.Counter("user_login_count", 1.0)
-  vigilant.Counter("user_login_count", 1.0, vigilant.Tag("env", "production"))
+  vigilant.MetricCounter("user_login_count", 1.0)
+  vigilant.MetricCounter("user_login_count", 1.0, vigilant.Tag("env", "production"))
 
   // Create a gauge metric
-  vigilant.Gauge("active_users", 1.0)
-  vigilant.Gauge("active_users", 1.0, vigilant.Tag("env", "production"))
+  vigilant.MetricGauge("active_users", 1.0)
+  vigilant.MetricGauge("active_users", 1.0, vigilant.Tag("env", "production"))
 
   // Create a histogram metric
-  vigilant.Histogram("request_duration", 123.4)
-  vigilant.Histogram("request_duration", 123.4, vigilant.Tag("env", "production"))
+  vigilant.MetricHistogram("request_duration", 123.4)
+  vigilant.MetricHistogram("request_duration", 123.4, vigilant.Tag("env", "production"))
 }
 ```

@@ -64,8 +64,9 @@ type aggregatedMetrics struct {
 // newAggregatedMetrics creates a new aggregatedMetrics
 func newAggregatedMetrics() *aggregatedMetrics {
 	return &aggregatedMetrics{
-		counterMetrics: make([]*counterMessage, 0),
-		gaugeMetrics:   make([]*gaugeMessage, 0),
+		counterMetrics:   make([]*counterMessage, 0),
+		gaugeMetrics:     make([]*gaugeMessage, 0),
+		histogramMetrics: make([]*histogramMessage, 0),
 	}
 }
 

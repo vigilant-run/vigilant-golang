@@ -3,7 +3,7 @@ package vigilant
 import "fmt"
 
 // Counter captures a counter metric
-func Counter(name string, value float64, tags ...MetricTag) {
+func MetricCounter(name string, value float64, tags ...MetricTag) {
 	if gateNilAgent() {
 		return
 	}
@@ -18,7 +18,7 @@ func Counter(name string, value float64, tags ...MetricTag) {
 }
 
 // Gauge captures a gauge metric
-func Gauge(name string, value float64, tags ...MetricTag) {
+func MetricGauge(name string, value float64, tags ...MetricTag) {
 	if gateNilAgent() {
 		return
 	}
@@ -33,7 +33,7 @@ func Gauge(name string, value float64, tags ...MetricTag) {
 }
 
 // Histogram captures a histogram metric
-func Histogram(name string, value float64, tags ...MetricTag) {
+func MetricHistogram(name string, value float64, tags ...MetricTag) {
 	if gateNilAgent() {
 		return
 	}
