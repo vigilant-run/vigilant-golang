@@ -91,8 +91,8 @@ func function() {
   vigilant.MetricCounter("user_login_count", 1.0, vigilant.Tag("env", "production"))
 
   // Create a gauge metric
-  vigilant.MetricGauge("active_users", 1.0)
-  vigilant.MetricGauge("active_users", 1.0, vigilant.Tag("env", "production"))
+  vigilant.MetricGauge("active_users", 1.0, vigilant.GaugeModeSet)
+  vigilant.MetricGauge("active_users", 1.0, vigilant.GaugeModeSet, vigilant.Tag("env", "production"))
 
   // Create a histogram metric
   vigilant.MetricHistogram("request_duration", 123.4)

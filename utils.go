@@ -3,6 +3,7 @@ package vigilant
 import (
 	"bytes"
 	"fmt"
+	"time"
 )
 
 // keyValsToMap formats a list of key-value pairs into a map
@@ -26,16 +27,6 @@ func attributesToMap(attributes ...Attribute) (map[string]string, error) {
 	attrs := make(map[string]string)
 	for _, attribute := range attributes {
 		attrs[attribute.Key] = attribute.Value
-	}
-	return attrs, nil
-}
-
-// tagsToMap formats a list of tags into a map
-// it is a utility function for some of the observability functions
-func tagsToMap(tags ...MetricTag) (map[string]string, error) {
-	attrs := make(map[string]string)
-	for _, tag := range tags {
-		attrs[tag.Key] = tag.Value
 	}
 	return attrs, nil
 }
@@ -92,4 +83,71 @@ func gateNilAgent() bool {
 		return true
 	}
 	return false
+}
+
+// createLogMessage creates a log message from the given parameters
+func createLogMessage(level LogLevel, message string, attributes map[string]string) *logMessage {
+	deduplicatedAttributes := deduplicateAttributes(attributes)
+	return &logMessage{
+		Timestamp:  time.Now(),
+		Level:      level,
+		Body:       message,
+		Attributes: deduplicatedAttributes,
+	}
+}
+
+// createCounterEvent creates a counter event from the given parameters
+func createCounterEvent(name string, value float64, tags ...MetricTag) *counterEvent {
+	deduplicatedTags := deduplicateTags(tags)
+	return &counterEvent{
+		timestamp: time.Now(),
+		name:      name,
+		value:     value,
+		tags:      deduplicatedTags,
+	}
+}
+
+// createGaugeEvent creates a gauge event from the given parameters
+func createGaugeEvent(name string, value float64, mode GaugeMode, tags ...MetricTag) *gaugeEvent {
+	deduplicatedTags := deduplicateTags(tags)
+	return &gaugeEvent{
+		timestamp: time.Now(),
+		name:      name,
+		value:     value,
+		mode:      mode,
+		tags:      deduplicatedTags,
+	}
+}
+
+// createHistogramEvent creates a histogram event from the given parameters
+func createHistogramEvent(name string, value float64, tags ...MetricTag) *histogramEvent {
+	deduplicatedTags := deduplicateTags(tags)
+	return &histogramEvent{
+		timestamp: time.Now(),
+		name:      name,
+		value:     value,
+		tags:      deduplicatedTags,
+	}
+}
+
+// deduplicateAttributes deduplicates the attributes
+func deduplicateAttributes(attributes map[string]string) map[string]string {
+	deduplicated := make(map[string]string)
+	for key, value := range attributes {
+		if _, ok := deduplicated[key]; !ok {
+			deduplicated[key] = value
+		}
+	}
+	return deduplicated
+}
+
+// deduplicateTags deduplicates the tags
+func deduplicateTags(tags []MetricTag) map[string]string {
+	deduplicated := make(map[string]string)
+	for _, tag := range tags {
+		if _, ok := deduplicated[tag.Key]; !ok {
+			deduplicated[tag.Key] = tag.Value
+		}
+	}
+	return deduplicated
 }
