@@ -390,10 +390,8 @@ func (c *metricCollector) aggregateMetrics(
 	return aggregatedMetrics
 }
 
-// resetMetrics resets the metrics for the given interval
+// resetMetrics resets the metrics for the given interval, the lock is expected to be held by the caller
 func (c *metricCollector) resetMetrics() {
-	c.mux.Lock()
-	defer c.mux.Unlock()
 	for _, counter := range c.counterSeries {
 		counter.value = 0
 	}
