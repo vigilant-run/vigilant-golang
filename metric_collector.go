@@ -312,6 +312,7 @@ func (c *metricCollector) processAfterShutdown() {
 func (c *metricCollector) sendMetricsForInterval(intervalStart time.Time) {
 	c.mux.Lock()
 	metricsToSend := c.aggregateMetrics(intervalStart)
+	c.resetMetrics()
 	c.mux.Unlock()
 
 	if metricsToSend != nil {
