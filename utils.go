@@ -76,13 +76,19 @@ func getLevelInt(level LogLevel) int {
 	}
 }
 
+// globalEmitNilError is a flag to emit the nil agent error only once
+var globalEmitNilError = true
+
 // gateNilAgent checks if the agent is nil
 func gateNilAgent() bool {
-	if globalAgent == nil {
-		fmt.Printf("\n[ERROR] The Vigilant agent is not initialized.\n\tPlease call vigilant.Init() before using the agent.\n\tDocs: https://docs.vigilant.run/overview\n")
-		return true
+	if globalAgent != nil {
+		return false
 	}
-	return false
+	if globalEmitNilError {
+		fmt.Printf("\n[ERROR] The Vigilant agent is not initialized.\n\tPlease call vigilant.Init() before using the agent.\n\tDocs: https://docs.vigilant.run/overview\n")
+		globalEmitNilError = false
+	}
+	return true
 }
 
 // createLogMessage creates a log message from the given parameters
