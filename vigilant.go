@@ -6,30 +6,30 @@ import (
 	"time"
 )
 
-// globalAgent is the global agent instance
-var globalAgent *agent
+// globalInstance is the global Vigilant instance
+var globalInstance *instance
 
-// Init initializes the agent, it should be called once when the program is starting
+// Init initializes the Vigilant instance, it should be called once when the program is starting
 // Before calling this, all other Vigilant functions will be noops
 func Init(config *VigilantConfig) {
-	if globalAgent != nil {
+	if globalInstance != nil {
 		return
 	}
-	globalAgent = newVigilant(config)
-	globalAgent.start()
+	globalInstance = newVigilant(config)
+	globalInstance.start()
 }
 
-// Shutdown shuts down the agent, it should be called once when the program is shutting down
+// Shutdown shuts down the Vigilant instance, it should be called once when the program is shutting down
 func Shutdown() error {
-	if globalAgent == nil {
+	if globalInstance == nil {
 		return nil
 	}
-	return globalAgent.shutdown()
+	return globalInstance.shutdown()
 }
 
-// agent is the internal representation of the agent
-// it handles the sending of logs
-type agent struct {
+// instance is the internal representation of the Vigilant instance
+// it handles the sending of logs and metrics to the server
+type instance struct {
 	name        string
 	level       LogLevel
 	token       string
@@ -40,8 +40,8 @@ type agent struct {
 	metricCollector *metricCollector
 }
 
-// newVigilant creates a new agent from the given config
-func newVigilant(config *VigilantConfig) *agent {
+// newVigilant creates a new Vigilant instance from the given config
+func newVigilant(config *VigilantConfig) *instance {
 	logBatcher := newLogBatcher(
 		config.Token,
 		getEndpoint(config),
@@ -53,7 +53,7 @@ func newVigilant(config *VigilantConfig) *agent {
 		getEndpoint(config),
 		&http.Client{},
 	)
-	return &agent{
+	return &instance{
 		name:            config.Name,
 		level:           config.Level,
 		token:           config.Token,
@@ -64,8 +64,8 @@ func newVigilant(config *VigilantConfig) *agent {
 	}
 }
 
-// start starts the agent
-func (a *agent) start() {
+// start starts the Vigilant instance
+func (a *instance) start() {
 	if a.noop {
 		return
 	}
@@ -73,15 +73,15 @@ func (a *agent) start() {
 	a.metricCollector.start()
 }
 
-// shutdown shuts down the agent
-func (a *agent) shutdown() error {
+// shutdown shuts down the Vigilant instance
+func (a *instance) shutdown() error {
 	a.logBatcher.stop()
 	a.metricCollector.stop()
 	return nil
 }
 
 // captureLog captures a log message
-func (a *agent) captureLog(log *logMessage) {
+func (a *instance) captureLog(log *logMessage) {
 	if !isLevelEnabled(log.Level, a.level) {
 		return
 	}
@@ -100,7 +100,7 @@ func (a *agent) captureLog(log *logMessage) {
 }
 
 // captureCounter captures a counter metric
-func (a *agent) captureCounter(counter *counterEvent) {
+func (a *instance) captureCounter(counter *counterEvent) {
 	if a.noop {
 		return
 	}
@@ -109,7 +109,7 @@ func (a *agent) captureCounter(counter *counterEvent) {
 }
 
 // captureGauge captures a gauge metric
-func (a *agent) captureGauge(gauge *gaugeEvent) {
+func (a *instance) captureGauge(gauge *gaugeEvent) {
 	if a.noop {
 		return
 	}
@@ -118,7 +118,7 @@ func (a *agent) captureGauge(gauge *gaugeEvent) {
 }
 
 // captureHistogram captures a histogram metric
-func (a *agent) captureHistogram(histogram *histogramEvent) {
+func (a *instance) captureHistogram(histogram *histogramEvent) {
 	if a.noop {
 		return
 	}
@@ -127,7 +127,7 @@ func (a *agent) captureHistogram(histogram *histogramEvent) {
 }
 
 // withBaseAttributes adds the service name attribute to the given attributes
-func (a *agent) withBaseAttributes(attrs map[string]string) map[string]string {
+func (a *instance) withBaseAttributes(attrs map[string]string) map[string]string {
 	updatedAttrs := make(map[string]string)
 	if attrs != nil {
 		maps.Copy(updatedAttrs, attrs)

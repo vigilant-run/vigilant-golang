@@ -1,4 +1,4 @@
-# Vigilant Go Agent
+# Vigilant Go
 
 This is the Go SDK for Vigilant.
 

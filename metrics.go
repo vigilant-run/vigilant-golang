@@ -2,7 +2,7 @@ package vigilant
 
 // MetricCounter captures a counter metric
 func MetricCounter(name string, value float64, tags ...MetricTag) {
-	if gateNilAgent() || value < 0 {
+	if gateNilGlobalInstance() || value < 0 {
 		return
 	}
 
@@ -11,12 +11,12 @@ func MetricCounter(name string, value float64, tags ...MetricTag) {
 		return
 	}
 
-	globalAgent.captureCounter(counter)
+	globalInstance.captureCounter(counter)
 }
 
 // MetricGauge captures a gauge metric
 func MetricGauge(name string, value float64, mode GaugeMode, tags ...MetricTag) {
-	if gateNilAgent() || value < 0 {
+	if gateNilGlobalInstance() || value < 0 {
 		return
 	}
 
@@ -25,12 +25,12 @@ func MetricGauge(name string, value float64, mode GaugeMode, tags ...MetricTag) 
 		return
 	}
 
-	globalAgent.captureGauge(gauge)
+	globalInstance.captureGauge(gauge)
 }
 
 // MetricHistogram captures a histogram metric
 func MetricHistogram(name string, value float64, tags ...MetricTag) {
-	if gateNilAgent() || value < 0 {
+	if gateNilGlobalInstance() || value < 0 {
 		return
 	}
 
@@ -39,5 +39,5 @@ func MetricHistogram(name string, value float64, tags ...MetricTag) {
 		return
 	}
 
-	globalAgent.captureHistogram(histogram)
+	globalInstance.captureHistogram(histogram)
 }

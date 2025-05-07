@@ -19,7 +19,7 @@ import (
 //
 //	Log(LEVEL_INFO, "Hello, world!")
 func Log(level LogLevel, message string) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -28,7 +28,7 @@ func Log(level LogLevel, message string) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogError logs an error at the given level
@@ -39,7 +39,7 @@ func Log(level LogLevel, message string) {
 //
 //	LogError("Failed to write to file")
 func LogError(message string) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -48,7 +48,7 @@ func LogError(message string) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogWarn logs a warning at the given level
@@ -59,7 +59,7 @@ func LogError(message string) {
 //
 //	LogWarn("Failed to write to file")
 func LogWarn(message string) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -68,7 +68,7 @@ func LogWarn(message string) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogInfo logs an info message at the given level
@@ -79,7 +79,7 @@ func LogWarn(message string) {
 //
 //	LogInfo("Hello, world!")
 func LogInfo(message string) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -88,7 +88,7 @@ func LogInfo(message string) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogDebug logs a debug message at the given level
@@ -99,7 +99,7 @@ func LogInfo(message string) {
 //
 //	LogDebug("Hello, world!")
 func LogDebug(message string) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -108,7 +108,7 @@ func LogDebug(message string) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogTrace logs a trace message at the given level
@@ -119,7 +119,7 @@ func LogDebug(message string) {
 //
 //	LogTrace("Hello, world!")
 func LogTrace(message string) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -128,7 +128,7 @@ func LogTrace(message string) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // ------------------------- //
@@ -142,7 +142,7 @@ func LogTrace(message string) {
 // Example:
 // LogErrorf("Failed to %s", "do something")
 func LogErrorf(template string, args ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -151,7 +151,7 @@ func LogErrorf(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogWarnf logs a warning at the given level
@@ -162,7 +162,7 @@ func LogErrorf(template string, args ...any) {
 //
 //	LogWarnf("Failed to %s", "do something")
 func LogWarnf(template string, args ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -171,7 +171,7 @@ func LogWarnf(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogInfof logs an info message at the given level
@@ -182,7 +182,7 @@ func LogWarnf(template string, args ...any) {
 //
 //	LogInfof("Failed to %s", "do something")
 func LogInfof(template string, args ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -191,7 +191,7 @@ func LogInfof(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogDebugf logs a debug message at the given level
@@ -202,7 +202,7 @@ func LogInfof(template string, args ...any) {
 //
 //	LogDebugf("Failed to %s", "do something")
 func LogDebugf(template string, args ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -211,7 +211,7 @@ func LogDebugf(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogTracef logs a trace message at the given level
@@ -222,7 +222,7 @@ func LogDebugf(template string, args ...any) {
 //
 //	LogTracef("Failed to %s", "do something")
 func LogTracef(template string, args ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -231,7 +231,7 @@ func LogTracef(template string, args ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // ------------------------------- //
@@ -246,7 +246,7 @@ func LogTracef(template string, args ...any) {
 //
 //	LogErrort("Failed to write to file", "file", "example.txt", "error", "some error")
 func LogErrort(message string, attributes ...Attribute) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -261,7 +261,7 @@ func LogErrort(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogWarnt logs a warning at the given level with typed attributes
@@ -272,7 +272,7 @@ func LogErrort(message string, attributes ...Attribute) {
 //
 //	LogWarnt("Failed to write to file", "file", "example.txt", "error", "some error")
 func LogWarnt(message string, attributes ...Attribute) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -287,7 +287,7 @@ func LogWarnt(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogInfot logs an info message at the given level with typed attributes
@@ -298,7 +298,7 @@ func LogWarnt(message string, attributes ...Attribute) {
 //
 //	LogInfot("Failed to write to file", "file", "example.txt", "error", "some error")
 func LogInfot(message string, attributes ...Attribute) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -313,7 +313,7 @@ func LogInfot(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogDebugt logs a debug message at the given level with typed attributes
@@ -324,7 +324,7 @@ func LogInfot(message string, attributes ...Attribute) {
 //
 //	LogDebugt("Failed to write to file", "file", "example.txt", "error", "some error")
 func LogDebugt(message string, attributes ...Attribute) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -339,7 +339,7 @@ func LogDebugt(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogTracet logs a trace message at the given level with typed attributes
@@ -350,7 +350,7 @@ func LogDebugt(message string, attributes ...Attribute) {
 //
 //	LogTracet("Failed to write to file", "file", "example.txt", "error", "some error")
 func LogTracet(message string, attributes ...Attribute) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -365,7 +365,7 @@ func LogTracet(message string, attributes ...Attribute) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // -------------------------------- //
@@ -380,7 +380,7 @@ func LogTracet(message string, attributes ...Attribute) {
 //
 //	LogErrorw("Failed to write to file", "file", "example.txt", "error", "some error")
 func LogErrorw(message string, keyVals ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -395,7 +395,7 @@ func LogErrorw(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogWarnw logs a warning at the given level with key-value attributes
@@ -406,7 +406,7 @@ func LogErrorw(message string, keyVals ...any) {
 //
 //	LogWarnw("Database query too long", "query", "SELECT * FROM users", "duration", "100ms")
 func LogWarnw(message string, keyVals ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -421,7 +421,7 @@ func LogWarnw(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogInfow logs an info message at the given level with key-value attributes
@@ -432,7 +432,7 @@ func LogWarnw(message string, keyVals ...any) {
 //
 //	LogInfow("User signup request", "email", "test@example.com")
 func LogInfow(message string, keyVals ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -447,7 +447,7 @@ func LogInfow(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
 // LogDebugw logs a debug message at the given level with key-value attributes
@@ -458,7 +458,7 @@ func LogInfow(message string, keyVals ...any) {
 //
 //	LogDebugw("Timer tick", "time", "100ms")
 func LogDebugw(message string, keyVals ...any) {
-	if gateNilAgent() {
+	if gateNilGlobalInstance() {
 		return
 	}
 
@@ -473,10 +473,10 @@ func LogDebugw(message string, keyVals ...any) {
 		return
 	}
 
-	globalAgent.captureLog(log)
+	globalInstance.captureLog(log)
 }
 
-// writeLogPassthrough writes a log message to the agent
+// writeLogPassthrough writes a log message to Vigilant
 // this is an internal function that is used to write log messages to stdout
 func writeLogPassthrough(level LogLevel, message string, attrs map[string]string) {
 	switch level {
