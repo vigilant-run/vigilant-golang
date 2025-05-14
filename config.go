@@ -1,5 +1,7 @@
 package vigilant
 
+import "maps"
+
 // VigilantConfig is the configuration for Vigilant
 type VigilantConfig struct {
 	// Name is the name of the service being monitored
@@ -22,6 +24,9 @@ type VigilantConfig struct {
 
 	// Noop is whether to not send logs to the server
 	Noop bool
+
+	// Attributes are the attributes to add to all logs
+	Attributes map[string]string
 }
 
 // VigilantConfigBuilder is the builder for the VigilantConfig
@@ -33,6 +38,7 @@ type VigilantConfigBuilder struct {
 	passthrough *bool
 	insecure    *bool
 	noop        *bool
+	attributes  map[string]string
 }
 
 // NewConfigBuilder creates a new VigilantConfig builder
@@ -82,6 +88,12 @@ func (b *VigilantConfigBuilder) WithNoop(noop bool) *VigilantConfigBuilder {
 	return b
 }
 
+// WithAttributes sets the attributes of the service
+func (b *VigilantConfigBuilder) WithAttributes(attributes map[string]string) *VigilantConfigBuilder {
+	b.attributes = attributes
+	return b
+}
+
 // Build builds the VigilantConfig
 func (b *VigilantConfigBuilder) Build() *VigilantConfig {
 	config := &VigilantConfig{
@@ -92,10 +104,12 @@ func (b *VigilantConfigBuilder) Build() *VigilantConfig {
 		Passthrough: false,
 		Insecure:    false,
 		Noop:        false,
+		Attributes:  map[string]string{"service": "server-name"},
 	}
 
 	if b.name != nil {
 		config.Name = *b.name
+		config.Attributes["service"] = *b.name
 	}
 
 	if b.level != nil {
@@ -122,6 +136,10 @@ func (b *VigilantConfigBuilder) Build() *VigilantConfig {
 		config.Noop = *b.noop
 	}
 
+	if len(b.attributes) > 0 {
+		maps.Copy(config.Attributes, b.attributes)
+	}
+
 	return config
 }
 
@@ -135,5 +153,6 @@ func NewNoopConfig() *VigilantConfig {
 		Insecure:    false,
 		Passthrough: true,
 		Noop:        true,
+		Attributes:  map[string]string{},
 	}
 }

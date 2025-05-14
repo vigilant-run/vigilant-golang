@@ -28,9 +28,6 @@ func main() {
     WithToken("tk_1234567890"). // Generate this from the Vigilant dashboard
     Build()
 
-  // Add global attributes (optional)
-  vigilant.AddGlobalAttributes(vigilant.String("env", "production"))
-
   // Initialize Vigilant
   vigilant.Init(config)
 

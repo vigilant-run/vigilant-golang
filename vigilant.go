@@ -40,8 +40,8 @@ type instance struct {
 	logBatcher      *logBatcher
 	metricCollector *metricCollector
 
-	baseAttrs    map[string]string
-	baseAttrsMux sync.RWMutex
+	globalAttrs    map[string]string
+	globalAttrsMux sync.RWMutex
 }
 
 // newVigilant creates a new Vigilant instance from the given config
@@ -65,8 +65,8 @@ func newVigilant(config *VigilantConfig) *instance {
 		noop:            config.Noop,
 		logBatcher:      logBatcher,
 		metricCollector: metricCollector,
-		baseAttrs:       map[string]string{"service": config.Name},
-		baseAttrsMux:    sync.RWMutex{},
+		globalAttrs:     config.Attributes,
+		globalAttrsMux:  sync.RWMutex{},
 	}
 }
 
@@ -93,7 +93,7 @@ func (a *instance) captureLog(log *logMessage) {
 	}
 
 	if log.Attributes != nil {
-		a.useGlobalAttributes(log.Attributes)
+		a.addGlobalAttributes(log.Attributes)
 	}
 
 	if a.passthrough {
@@ -134,20 +134,13 @@ func (a *instance) captureHistogram(histogram *histogramEvent) {
 	a.metricCollector.addHistogram(histogram)
 }
 
-// useGlobalAttributes adds the global attributes to the given attributes
-func (a *instance) useGlobalAttributes(attrs map[string]string) {
+// addGlobalAttributes adds the global attributes to the given attributes
+func (a *instance) addGlobalAttributes(attrs map[string]string) {
 	if attrs == nil {
 		return
 	}
 
-	a.baseAttrsMux.RLock()
-	defer a.baseAttrsMux.RUnlock()
-	maps.Copy(attrs, a.baseAttrs)
-}
-
-// addGlobalAttributes adds attributes to the global instance
-func (a *instance) addGlobalAttributes(attrs map[string]string) {
-	a.baseAttrsMux.Lock()
-	defer a.baseAttrsMux.Unlock()
-	maps.Copy(a.baseAttrs, attrs)
+	a.globalAttrsMux.RLock()
+	defer a.globalAttrsMux.RUnlock()
+	maps.Copy(attrs, a.globalAttrs)
 }
