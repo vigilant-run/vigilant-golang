@@ -3,6 +3,7 @@ package vigilant
 import (
 	"maps"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -38,6 +39,9 @@ type instance struct {
 
 	logBatcher      *logBatcher
 	metricCollector *metricCollector
+
+	baseAttrs    map[string]string
+	baseAttrsMux sync.RWMutex
 }
 
 // newVigilant creates a new Vigilant instance from the given config
@@ -61,6 +65,8 @@ func newVigilant(config *VigilantConfig) *instance {
 		noop:            config.Noop,
 		logBatcher:      logBatcher,
 		metricCollector: metricCollector,
+		baseAttrs:       map[string]string{"service": config.Name},
+		baseAttrsMux:    sync.RWMutex{},
 	}
 }
 
@@ -86,7 +92,9 @@ func (a *instance) captureLog(log *logMessage) {
 		return
 	}
 
-	log.Attributes = a.withBaseAttributes(log.Attributes)
+	if log.Attributes != nil {
+		a.useGlobalAttributes(log.Attributes)
+	}
 
 	if a.passthrough {
 		writeLogPassthrough(log.Level, log.Body, log.Attributes)
@@ -126,12 +134,20 @@ func (a *instance) captureHistogram(histogram *histogramEvent) {
 	a.metricCollector.addHistogram(histogram)
 }
 
-// withBaseAttributes adds the service name attribute to the given attributes
-func (a *instance) withBaseAttributes(attrs map[string]string) map[string]string {
-	updatedAttrs := make(map[string]string)
-	if attrs != nil {
-		maps.Copy(updatedAttrs, attrs)
+// useGlobalAttributes adds the global attributes to the given attributes
+func (a *instance) useGlobalAttributes(attrs map[string]string) {
+	if attrs == nil {
+		return
 	}
-	updatedAttrs["service"] = a.name
-	return updatedAttrs
+
+	a.baseAttrsMux.RLock()
+	defer a.baseAttrsMux.RUnlock()
+	maps.Copy(attrs, a.baseAttrs)
+}
+
+// addGlobalAttributes adds attributes to the global instance
+func (a *instance) addGlobalAttributes(attrs map[string]string) {
+	a.baseAttrsMux.Lock()
+	defer a.baseAttrsMux.Unlock()
+	maps.Copy(a.baseAttrs, attrs)
 }

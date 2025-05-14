@@ -7,6 +7,21 @@ import (
 // Logging functions are used to log messages, they are searchable in the Vigilant Dashboard.
 // Only the information provided in the logs is sent to Vigilant.
 
+// -------------------------- //
+// --- Attributes Helpers --- //
+// -------------------------- //
+
+// AddGlobalAttributes adds global attributes to the global instance
+func AddGlobalAttributes(attributes ...Attribute) {
+	attrs, err := attributesToMap(attributes...)
+	if err != nil {
+		fmt.Printf("error formatting attributes: %v\n", err)
+		return
+	}
+
+	globalInstance.addGlobalAttributes(attrs)
+}
+
 // ----------------------- //
 // --- General Logging --- //
 // ----------------------- //
