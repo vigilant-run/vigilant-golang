@@ -23,12 +23,12 @@ func keyValsToMap(keyVals ...any) (map[string]string, error) {
 
 // attributesToMap formats a list of attributes into a map
 // it is a utility function for some of the observability functions
-func attributesToMap(attributes ...Attribute) (map[string]string, error) {
+func attributesToMap(attributes ...Attribute) map[string]string {
 	attrs := make(map[string]string)
 	for _, attribute := range attributes {
 		attrs[attribute.Key] = attribute.Value
 	}
-	return attrs, nil
+	return attrs
 }
 
 // prettyPrintAttributes pretty prints a map of attributes

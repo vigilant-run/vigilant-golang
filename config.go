@@ -89,8 +89,8 @@ func (b *VigilantConfigBuilder) WithNoop(noop bool) *VigilantConfigBuilder {
 }
 
 // WithAttributes sets the attributes of the service
-func (b *VigilantConfigBuilder) WithAttributes(attributes map[string]string) *VigilantConfigBuilder {
-	b.attributes = attributes
+func (b *VigilantConfigBuilder) WithAttributes(attributes ...Attribute) *VigilantConfigBuilder {
+	b.attributes = attributesToMap(attributes...)
 	return b
 }
 

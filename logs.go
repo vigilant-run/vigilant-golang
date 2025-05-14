@@ -250,11 +250,7 @@ func LogErrort(message string, attributes ...Attribute) {
 		return
 	}
 
-	attrs, err := attributesToMap(attributes...)
-	if err != nil {
-		fmt.Printf("error formatting attributes: %v\n", err)
-		return
-	}
+	attrs := attributesToMap(attributes...)
 
 	log := createLogMessage(LEVEL_ERROR, message, attrs)
 	if log == nil {
@@ -276,11 +272,7 @@ func LogWarnt(message string, attributes ...Attribute) {
 		return
 	}
 
-	attrs, err := attributesToMap(attributes...)
-	if err != nil {
-		fmt.Printf("error formatting attributes: %v\n", err)
-		return
-	}
+	attrs := attributesToMap(attributes...)
 
 	log := createLogMessage(LEVEL_WARN, message, attrs)
 	if log == nil {
@@ -302,11 +294,7 @@ func LogInfot(message string, attributes ...Attribute) {
 		return
 	}
 
-	attrs, err := attributesToMap(attributes...)
-	if err != nil {
-		fmt.Printf("error formatting attributes: %v\n", err)
-		return
-	}
+	attrs := attributesToMap(attributes...)
 
 	log := createLogMessage(LEVEL_INFO, message, attrs)
 	if log == nil {
@@ -328,11 +316,7 @@ func LogDebugt(message string, attributes ...Attribute) {
 		return
 	}
 
-	attrs, err := attributesToMap(attributes...)
-	if err != nil {
-		fmt.Printf("error formatting attributes: %v\n", err)
-		return
-	}
+	attrs := attributesToMap(attributes...)
 
 	log := createLogMessage(LEVEL_DEBUG, message, attrs)
 	if log == nil {
@@ -354,11 +338,7 @@ func LogTracet(message string, attributes ...Attribute) {
 		return
 	}
 
-	attrs, err := attributesToMap(attributes...)
-	if err != nil {
-		fmt.Printf("error formatting attributes: %v\n", err)
-		return
-	}
+	attrs := attributesToMap(attributes...)
 
 	log := createLogMessage(LEVEL_TRACE, message, attrs)
 	if log == nil {
