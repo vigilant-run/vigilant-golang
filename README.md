@@ -87,7 +87,7 @@ import (
 
 func function() {
   // Create a metric
-  vigilant.Metric("user_login_count", 1.0)
-  vigilant.Metric("user_login_count", 1.0, vigilant.Tag("env", "production"))
+  vigilant.MetricEvent("user_login_count", 1.0)
+  vigilant.MetricEvent("user_login_count", 1.0, vigilant.Tag("env", "production"))
 }
 ```

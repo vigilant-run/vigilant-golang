@@ -6,13 +6,13 @@ package vigilant
 //
 // Example:
 //
-//	Metric("my_metric", 1.0, vigilant.Tag("env", "prod"))
-func Metric(name string, value float64, attributes ...Attribute) {
+//	MetricEvent("my_metric", 1.0, vigilant.Tag("env", "prod"))
+func MetricEvent(name string, value float64, tags ...MetricTag) {
 	if gateNilGlobalInstance() {
 		return
 	}
 
-	metric := createMetricMessage(name, value, attributes...)
+	metric := createMetricMessage(name, value, tags...)
 	if metric == nil {
 		return
 	}
@@ -20,7 +20,7 @@ func Metric(name string, value float64, attributes ...Attribute) {
 	globalInstance.captureMetric(metric)
 }
 
-// DEPRECATED: Use Metric instead
+// DEPRECATED: Use MetricEvent instead
 // MetricCounter captures a counter metric
 func MetricCounter(name string, value float64, tags ...MetricTag) {
 	if gateNilGlobalInstance() || value < 0 {
@@ -35,7 +35,7 @@ func MetricCounter(name string, value float64, tags ...MetricTag) {
 	globalInstance.captureCounter(counter)
 }
 
-// DEPRECATED: Use Metric instead
+// DEPRECATED: Use MetricEvent instead
 // MetricGauge captures a gauge metric
 func MetricGauge(name string, value float64, mode GaugeMode, tags ...MetricTag) {
 	if gateNilGlobalInstance() || value < 0 {
@@ -50,7 +50,7 @@ func MetricGauge(name string, value float64, mode GaugeMode, tags ...MetricTag) 
 	globalInstance.captureGauge(gauge)
 }
 
-// DEPRECATED: Use Metric instead
+// DEPRECATED: Use MetricEvent instead
 // MetricHistogram captures a histogram metric
 func MetricHistogram(name string, value float64, tags ...MetricTag) {
 	if gateNilGlobalInstance() || value < 0 {
