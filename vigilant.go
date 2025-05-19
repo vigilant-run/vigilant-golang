@@ -38,6 +38,7 @@ type instance struct {
 	noop        bool
 
 	logBatcher      *logBatcher
+	metricBatcher   *metricBatcher
 	metricCollector *metricCollector
 
 	globalAttrs    map[string]string
@@ -47,6 +48,11 @@ type instance struct {
 // newVigilant creates a new Vigilant instance from the given config
 func newVigilant(config *VigilantConfig) *instance {
 	logBatcher := newLogBatcher(
+		config.Token,
+		getEndpoint(config),
+		&http.Client{},
+	)
+	metricBatcher := newMetricBatcher(
 		config.Token,
 		getEndpoint(config),
 		&http.Client{},
@@ -64,6 +70,7 @@ func newVigilant(config *VigilantConfig) *instance {
 		passthrough:     config.Passthrough,
 		noop:            config.Noop,
 		logBatcher:      logBatcher,
+		metricBatcher:   metricBatcher,
 		metricCollector: metricCollector,
 		globalAttrs:     config.Attributes,
 		globalAttrsMux:  sync.RWMutex{},
@@ -76,12 +83,14 @@ func (a *instance) start() {
 		return
 	}
 	a.logBatcher.start()
+	a.metricBatcher.start()
 	a.metricCollector.start()
 }
 
 // shutdown shuts down the Vigilant instance
 func (a *instance) shutdown() error {
 	a.logBatcher.stop()
+	a.metricBatcher.stop()
 	a.metricCollector.stop()
 	return nil
 }
@@ -105,6 +114,15 @@ func (a *instance) captureLog(log *logMessage) {
 	}
 
 	a.logBatcher.addLog(log)
+}
+
+// captureMetric captures a metric
+func (a *instance) captureMetric(metric *metricMessage) {
+	if a.noop {
+		return
+	}
+
+	a.metricBatcher.addMetric(metric)
 }
 
 // captureCounter captures a counter metric

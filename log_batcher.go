@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	logEndpoint  = "/api/message"
-	maxBatchSize = 100
+	logEndpoint     = "/api/message"
+	maxLogBatchSize = 100
 )
 
 // logBatcher is a struct that contains the queues for the logs
@@ -91,7 +91,7 @@ func (b *logBatcher) runLogBatcher() {
 				continue
 			}
 			logs = append(logs, msg)
-			if len(logs) >= maxBatchSize {
+			if len(logs) >= maxLogBatchSize {
 				if err := b.sendLogBatch(logs); err != nil {
 					fmt.Printf("error sending log batch: %v\n", err)
 				}

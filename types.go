@@ -32,6 +32,7 @@ const (
 type messageBatch struct {
 	Token             string              `json:"token"`
 	Logs              []*logMessage       `json:"logs,omitempty"`
+	Metrics           []*metricMessage    `json:"metrics,omitempty"`
 	MetricsCounters   []*counterMessage   `json:"metrics_counters,omitempty"`
 	MetricsGauges     []*gaugeMessage     `json:"metrics_gauges,omitempty"`
 	MetricsHistograms []*histogramMessage `json:"metrics_histograms,omitempty"`
@@ -43,6 +44,14 @@ type logMessage struct {
 	Body       string            `json:"body"`
 	Level      LogLevel          `json:"level"`
 	Attributes map[string]string `json:"attributes"`
+}
+
+// metricMessage represents a metric message
+type metricMessage struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	MetricName string            `json:"metric_name"`
+	Value      float64           `json:"value"`
+	Tags       map[string]string `json:"tags"`
 }
 
 // counterMessage represents a counter metric message

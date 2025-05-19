@@ -102,6 +102,17 @@ func createLogMessage(level LogLevel, message string, attributes map[string]stri
 	}
 }
 
+// createMetricMessage creates a metric message from the given parameters
+func createMetricMessage(name string, value float64, tags ...MetricTag) *metricMessage {
+	deduplicatedTags := deduplicateTags(tags)
+	return &metricMessage{
+		Timestamp:  time.Now(),
+		MetricName: name,
+		Value:      value,
+		Tags:       deduplicatedTags,
+	}
+}
+
 // createCounterEvent creates a counter event from the given parameters
 func createCounterEvent(name string, value float64, tags ...MetricTag) *counterEvent {
 	deduplicatedTags := deduplicateTags(tags)
