@@ -49,9 +49,9 @@ type logMessage struct {
 // metricMessage represents a metric message
 type metricMessage struct {
 	Timestamp  time.Time         `json:"timestamp"`
-	MetricName string            `json:"metric_name"`
+	Name       string            `json:"name"`
 	Value      float64           `json:"value"`
-	Tags       map[string]string `json:"tags"`
+	Attributes map[string]string `json:"attributes"`
 }
 
 // counterMessage represents a counter metric message

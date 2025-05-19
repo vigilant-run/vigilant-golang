@@ -103,13 +103,13 @@ func createLogMessage(level LogLevel, message string, attributes map[string]stri
 }
 
 // createMetricMessage creates a metric message from the given parameters
-func createMetricMessage(name string, value float64, tags ...MetricTag) *metricMessage {
-	deduplicatedTags := deduplicateTags(tags)
+func createMetricMessage(name string, value float64, attributes ...Attribute) *metricMessage {
+	deduplicatedAttributes := deduplicateAttributes(attributesToMap(attributes...))
 	return &metricMessage{
 		Timestamp:  time.Now(),
-		MetricName: name,
+		Name:       name,
 		Value:      value,
-		Tags:       deduplicatedTags,
+		Attributes: deduplicatedAttributes,
 	}
 }
 

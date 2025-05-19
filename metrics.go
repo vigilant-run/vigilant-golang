@@ -7,12 +7,12 @@ package vigilant
 // Example:
 //
 //	Metric("my_metric", 1.0, vigilant.Tag("env", "prod"))
-func Metric(name string, value float64, tags ...MetricTag) {
-	if gateNilGlobalInstance() || value < 0 {
+func Metric(name string, value float64, attributes ...Attribute) {
+	if gateNilGlobalInstance() {
 		return
 	}
 
-	metric := createMetricMessage(name, value, tags...)
+	metric := createMetricMessage(name, value, attributes...)
 	if metric == nil {
 		return
 	}
